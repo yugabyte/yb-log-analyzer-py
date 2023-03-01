@@ -8,7 +8,7 @@ To streamline this process, This script automates the analysis of logs, allowing
 ## Help
 
 ```bash
-usage: analyzer.py [-h] -l LOG_FILES [LOG_FILES ...] [-H] [-wc] [-A] [-t START_TIME] [-T END_TIME]
+usage: analyzer.py [-h] -l LOG_FILES [LOG_FILES ...] [-H] [-wc] [-A] [-t START_TIME] [-T END_TIME] [-s SORT_BY]
 
 Log Analyzer for YugabyteDB logs
 
@@ -23,6 +23,8 @@ options:
                         From time in format MMDD HH:MM
   -T END_TIME, --to_time END_TIME
                         To time in format MMDD HH:MM
+  -s SORT_BY, --sort-by SORT_BY
+                        Sort by: NO = Number of occurrences, LO = Last Occurrence, FO = First Occurrence(Default)
 ```
 
 ## Example

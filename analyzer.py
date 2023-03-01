@@ -16,6 +16,7 @@ parser.add_argument("-wc",'--word_count', action="store_true",help='List top 20 
 parser.add_argument('-A','--ALL', action="store_true", help='FULL Health Check')
 parser.add_argument("-t", "--from_time", dest="start_time", help="From time in format MMDD HH:MM")
 parser.add_argument("-T", "--to_time", dest="end_time", help="To time in format MMDD HH:MM")
+parser.add_argument("-s", "--sort-by", dest="sort_by", help="Sort by: \n NO = Number of occurrences, \n LO = Last Occurrence,\n FO = First Occurrence(Default)")
 args = parser.parse_args()
 
 logFiles = args.log_files
@@ -48,7 +49,12 @@ def analyzeLog(logFile, start_time=None, end_time=None):
                         results[message]["firstOccurrenceTime"] = time                                                                               # set it 
                     results[message]["lastOccurrenceTime"] = time                                                                                # Set time as last occurrence time
 
-        sortedDict = OrderedDict(sorted(results.items(), key=lambda x: x[1]["numOccurrences"], reverse=True))
+        if args.sort_by == 'NO':
+            sortedDict = OrderedDict(sorted(results.items(), key=lambda x: x[1]["numOccurrences"], reverse=True))
+        elif args.sort_by == 'LO':
+            sortedDict = OrderedDict(sorted(results.items(), key=lambda x: x[1]["lastOccurrenceTime"]))
+        elif args.sort_by == 'FO' or True:
+            sortedDict = OrderedDict(sorted(results.items(), key=lambda x: x[1]["firstOccurrenceTime"]))
         table = []
         for message, info in sortedDict.items():
             table.append(
