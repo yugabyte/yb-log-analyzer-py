@@ -1,11 +1,31 @@
 # logs_analyzer_python
 
 ## Objective:
-Logs parsing and analysis takes good amount of time. 
+Parsing and analyzing logs can be a time-consuming process, particularly when troubleshooting issues. Often, we have to go through large volumes of logs to identify patterns, symptoms, and common error messages.
 
-For troubleshooting, we spend lot of time looking at logs for some known issues, symptoms, common error messages. Idea is to develop a script, which user can quickly on the logs to uncover any known findings, which otherwise could be taking lot of time.
+To streamline this process, This script automates the analysis of logs, allowing users to quickly uncover any known findings that would otherwise take significant amounts of time. By doing so, we can save valuable time and effort, and potentially resolve issues more quickly.
 
-How to run the script?
+## Help
+
+```bash
+usage: analyzer.py [-h] -l LOG_FILES [LOG_FILES ...] [-H] [-wc] [-A] [-t START_TIME] [-T END_TIME]
+
+Log Analyzer for YugabyteDB logs
+
+options:
+  -h, --help            show this help message and exit
+  -l LOG_FILES [LOG_FILES ...], --log_files LOG_FILES [LOG_FILES ...]
+                        List of log file[s]
+  -H, --histogram       Generate histogram graph
+  -wc, --word_count     List top 20 word count
+  -A, --ALL             FULL Health Check
+  -t START_TIME, --from_time START_TIME
+                        From time in format MMDD HH:MM
+  -T END_TIME, --to_time END_TIME
+                        To time in format MMDD HH:MM
+```
+
+## Example
 ```
 bash-5.1$ ./analyzer.py --log_file_path sample.log -H
 ╒═══════════════╤══════════════════════════════════════════════════════════════════════════════════╤══════════════════════╤══════════════════════╤═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╕
