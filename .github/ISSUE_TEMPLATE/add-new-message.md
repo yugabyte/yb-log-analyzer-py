@@ -13,15 +13,16 @@ assignees: pgyogesh
 
 ## Log Message
 
-[Add the log message that you're addressing with this issue, such as "Skipping collector MetricsCollector because it has a higher collection level than the requested one."]
+[Add the log message that you're addressing with this issue, such as "Rejecting Write request: Soft memory limit exceeded."]
 
 ## Regex Pattern
 
-[Add the regex pattern that can be used to match the log message, such as "Skipping collector MetricsCollector".]
+[Add the regex pattern that can be used to match the log message, such as "Soft memory limit exceeded".]
 
 ## Solution
 
-[Add a solution for the issue that's described by the log message, such as "Check the collection level and adjust it if necessary to enable the MetricsCollector to run."]
+[Add a solution for the issue that's described by the log message, such as "This typically means that we have overloaded system.
+    Check this KB for more details: https://support.yugabyte.com/hc/en-us/articles/4403688844045-Throttling-mechanism-in-YugaByte-TServer-due-to-high-Memory-Usage-"]
 
 ## Additional Information
 
