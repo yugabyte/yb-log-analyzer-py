@@ -33,7 +33,7 @@ def getLogFiles():
         logFiles = []
         for root, dirs, files in os.walk(args.directory):
             for file in files:
-                if file.endswith(".log"):
+                if file.__contains__("INFO"):
                     logFiles.append(os.path.join(root, file))
         return logFiles
     else:
