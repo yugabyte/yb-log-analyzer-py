@@ -4,24 +4,41 @@ from collections import OrderedDict
 import datetime
 import argparse
 import re
+import os
 import tabulate
 from histogram import *
 
 # Command line arguments
 
 parser = argparse.ArgumentParser(description="Log Analyzer for YugabyteDB logs")
-parser.add_argument("-l", "--log_files", required=True, nargs='+', help="List of log file[s]")
+parser.add_argument("-l", "--log_files", nargs='+', help="List of log file[s]")
+parser.add_argument("-d", "--directory", help="Directory containing log files")
 parser.add_argument("-H", "--histogram", action="store_true", help="Generate histogram graph")
 parser.add_argument("-wc",'--word_count', action="store_true",help='List top 20 word count')
 parser.add_argument('-A','--ALL', action="store_true", help='FULL Health Check')
-parser.add_argument("-t", "--from_time", dest="start_time", help="From time in format MMDD HH:MM")
-parser.add_argument("-T", "--to_time", dest="end_time", help="To time in format MMDD HH:MM")
+parser.add_argument("-t", "--from_time", metavar= "MMDD HH:MM", dest="start_time", help="Specify start time")
+parser.add_argument("-T", "--to_time", metavar= "MMDD HH:MM", dest="end_time", help="Specify end time")
 parser.add_argument("-s", "--sort-by", dest="sort_by", help="Sort by: \n NO = Number of occurrences, \n LO = Last Occurrence,\n FO = First Occurrence(Default)")
 args = parser.parse_args()
 
-logFiles = args.log_files
 start_time = datetime.datetime.strptime(args.start_time, "%m%d %H:%M") if args.start_time else None
 end_time = datetime.datetime.strptime(args.end_time, "%m%d %H:%M") if args.end_time else None
+outputFile = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "_analysis.txt"
+
+def getLogFiles():
+    if args.log_files:
+        return args.log_files
+    elif args.directory:
+        # Get all the files in the directory and nested directories
+        logFiles = []
+        for root, dirs, files in os.walk(args.directory):
+            for file in files:
+                if file.endswith(".log"):
+                    logFiles.append(os.path.join(root, file))
+        return logFiles
+    else:
+        print("Please specify log files or directory containing log files")
+        exit(1)
 
 def getTimeFromLog(line):
     timeFromLog = line.split(" ")[0][1:] + " " + line.split(" ")[1][:5]
@@ -66,10 +83,9 @@ def analyzeLog(logFile, start_time=None, end_time=None):
                     info["solution"],
                 ]
             )
-        outputFile = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "_analysis.txt"
-        open(outputFile, "a").write("\n\n\nAnalysis of" + logFile + "\n\n")
-        open(outputFile, "a").write(tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence", "Troubleshooting Tips"], tablefmt="simple_grid"))
-        print("Analysis complete. Results are in " + outputFile)
+    open(outputFile, "a").write("\n\n\nAnalysis of " + logFile + "\n\n")
+    open(outputFile, "a").write(tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence", "Troubleshooting Tips"], tablefmt="simple_grid"))
+
 
 def get_histogram(logFile):
    print ("\nHistogram of logs creating time period\n")
@@ -80,9 +96,11 @@ def get_word_count(logFile):
    word_count(logFile)
 
 if __name__ == "__main__":
-    for logFile in logFiles:
+    logFileList = getLogFiles()
+    for logFile in logFileList:
         analyzeLog(logFile, start_time, end_time)
         if args.histogram or args.ALL:
            get_histogram(logFile)
         if args.word_count or args.ALL:
            get_word_count(logFile)
+    print("Analysis complete. Results are in " + outputFile)

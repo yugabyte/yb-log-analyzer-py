@@ -1,2 +1,4 @@
 
 *.pyc
+sample_logs/*
+*analysis.txt
