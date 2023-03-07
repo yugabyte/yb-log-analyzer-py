@@ -52,11 +52,10 @@ def getLogFilesFromCommandLine():
     return logFiles
 
 def getLogFilesFromDirectory(logDirectory):
-    print("Getting log files from directory: {}".format(logDirectory))
     logFiles = []
     for root, dirs, files in os.walk(logDirectory):
         for file in files:
-            if file.__contains__("INFO"):
+            if file.__contains__("INFO") and file[0] != ".":
                 logFiles.append(os.path.join(root, file))
     return logFiles
 
@@ -67,14 +66,10 @@ def getLogFilesFromSupportBundle(supportBundle):
         support_bundle="support_bundle_{}".format(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S"))
         tarFile.extractall(support_bundle)
         tarFile.close()
-        for root, dirs, files in os.walk(support_bundle):
-            for file in files:
-                if file.__contains__("INFO") and file[0] != ".":
-                    logFiles.append(os.path.join(root, file))
-        return logFiles
+        logFiles = getLogFilesFromDirectory(support_bundle)
     else:
         logFiles = getLogFilesFromDirectory(supportBundle)
-        return logFiles
+    return logFiles
 
 def getTimeFromLog(line):
     timeFromLog = line.split(" ")[0][1:] + " " + line.split(" ")[1][:5]
@@ -141,7 +136,6 @@ if __name__ == "__main__":
     if type(logFileList) is not list:
         print("No log files found")
         exit(1)
-    print("Log files to analyze: {}".format(logFileList))
     for logFile in logFileList:
         if logFile.endswith(".gz"):
             open(outputFile, "a").write("\n\n\nAnalysis of " + logFile + "\n\n")
