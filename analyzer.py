@@ -21,8 +21,23 @@ parser.add_argument("-wc",'--word_count', action="store_true",help='List top 20 
 parser.add_argument('-A','--ALL', action="store_true", help='FULL Health Check')
 parser.add_argument("-t", "--from_time", metavar= "MMDD HH:MM", dest="start_time", help="Specify start time")
 parser.add_argument("-T", "--to_time", metavar= "MMDD HH:MM", dest="end_time", help="Specify end time")
-parser.add_argument("-s", "--sort-by", dest="sort_by", help="Sort by: \n NO = Number of occurrences, \n LO = Last Occurrence,\n FO = First Occurrence(Default)")
+parser.add_argument("-s", "--sort-by", dest="sort_by", choices=['NO','LO','FO'], help="Sort by: \n NO = Number of occurrences, \n LO = Last Occurrence,\n FO = First Occurrence(Default)")
 args = parser.parse_args()
+
+# Validated start and end time format
+
+if args.start_time:
+    try:
+        datetime.datetime.strptime(args.start_time, "%m%d %H:%M")
+    except ValueError as e:
+        print("Incorrect start time format, should be MMDD HH:MM")
+        exit(1)
+if args.end_time:
+    try:
+        datetime.datetime.strptime(args.end_time, "%m%d %H:%M")
+    except ValueError as e:
+        print("Incorrect end time format, should be MMDD HH:MM")
+        exit(1)
 
 start_time = datetime.datetime.strptime(args.start_time, "%m%d %H:%M") if args.start_time else None
 end_time = datetime.datetime.strptime(args.end_time, "%m%d %H:%M") if args.end_time else None

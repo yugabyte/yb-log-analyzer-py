@@ -1,4 +1,4 @@
-# logs_analyzer_python
+# YugabyteDB log analyzer
 
 ## Objective:
 Parsing and analyzing logs can be a time-consuming process, particularly when troubleshooting issues. Often, we have to go through large volumes of logs to identify patterns, symptoms, and common error messages.
@@ -8,7 +8,7 @@ To streamline this process, This script automates the analysis of logs, allowing
 ## Help
 
 ```bash
-usage: analyzer.py [-h] -l LOG_FILES [LOG_FILES ...] [-H] [-wc] [-A] [-t START_TIME] [-T END_TIME] [-s SORT_BY]
+usage: analyzer.py [-h] [-l LOG_FILES [LOG_FILES ...]] [-d DIRECTORY] [--support_bundle SUPPORT_BUNDLE] [-H] [-wc] [-A] [-t MMDD HH:MM] [-T MMDD HH:MM] [-s {NO,LO,FO}]
 
 Log Analyzer for YugabyteDB logs
 
@@ -16,14 +16,18 @@ options:
   -h, --help            show this help message and exit
   -l LOG_FILES [LOG_FILES ...], --log_files LOG_FILES [LOG_FILES ...]
                         List of log file[s]
+  -d DIRECTORY, --directory DIRECTORY
+                        Directory containing log files
+  --support_bundle SUPPORT_BUNDLE
+                        Path to support bundle
   -H, --histogram       Generate histogram graph
   -wc, --word_count     List top 20 word count
   -A, --ALL             FULL Health Check
-  -t START_TIME, --from_time START_TIME
-                        From time in format MMDD HH:MM
-  -T END_TIME, --to_time END_TIME
-                        To time in format MMDD HH:MM
-  -s SORT_BY, --sort-by SORT_BY
+  -t MMDD HH:MM, --from_time MMDD HH:MM
+                        Specify start time
+  -T MMDD HH:MM, --to_time MMDD HH:MM
+                        Specify end time
+  -s {NO,LO,FO}, --sort-by {NO,LO,FO}
                         Sort by: NO = Number of occurrences, LO = Last Occurrence, FO = First Occurrence(Default)
 ```
 
