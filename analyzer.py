@@ -77,7 +77,11 @@ def getTimeFromLog(line):
     return timestamp
 
 def analyzeLogFiles(logFile, start_time=None, end_time=None):
-    lines = logFile.readlines()                                                                                                             # Read all the lines in the log file
+    try:
+        lines = logFile.readlines()                                                                                                             # Read all the lines in the log file
+    except UnicodeDecodeError as e:
+        print("Skipping file {} as it is not a text file".format(logFile.name))
+        return
     results = {}                                                                                                                      # Dictionary to store the results
     for line in lines:                                                                                                                # For each line in the log file           
         for message, pattern in regex_patterns.items():                                                                                     # For each message and pattern
@@ -138,13 +142,14 @@ if __name__ == "__main__":
         exit(1)
     for logFile in logFileList:
         if logFile.endswith(".gz"):
-            open(outputFile, "a").write("\n\n\nAnalysis of " + logFile + "\n\n")
             with gzip.open(logFile, "rt") as f:
-                open(outputFile, "a").write(tabulate.tabulate(analyzeLogFiles(f, start_time, end_time), headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence", "Troubleshooting Tips"], tablefmt="simple_grid"))
+                table = analyzeLogFiles(f, start_time, end_time)
         else:
-            open(outputFile, "a").write("\n\n\nAnalysis of " + logFile + "\n\n")
             with open(logFile, "r") as f:
-                open(outputFile, "a").write(tabulate.tabulate(analyzeLogFiles(f, start_time, end_time), headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence", "Troubleshooting Tips"], tablefmt="simple_grid"))
+                table = analyzeLogFiles(f, start_time, end_time)
+        if table:
+            open(outputFile, "a").write("\n\n\nAnalysis of " + logFile + "\n\n")
+            open(outputFile, "a").write(tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence", "Troubleshooting Tips"], tablefmt="simple_grid"))
         if args.histogram or args.ALL:
            get_histogram(logFile)
         if args.word_count or args.ALL:
