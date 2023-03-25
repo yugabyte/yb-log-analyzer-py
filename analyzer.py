@@ -22,6 +22,7 @@ parser.add_argument('-A','--ALL', action="store_true", help='FULL Health Check')
 parser.add_argument("-t", "--from_time", metavar= "MMDD HH:MM", dest="start_time", help="Specify start time")
 parser.add_argument("-T", "--to_time", metavar= "MMDD HH:MM", dest="end_time", help="Specify end time")
 parser.add_argument("-s", "--sort-by", dest="sort_by", choices=['NO','LO','FO'], help="Sort by: \n NO = Number of occurrences, \n LO = Last Occurrence,\n FO = First Occurrence(Default)")
+parser.add_argument("--html", action="store_true", help="Generate HTML report")
 args = parser.parse_args()
 
 # Validated start and end time format
@@ -41,7 +42,62 @@ if args.end_time:
 
 start_time = datetime.datetime.strptime(args.start_time, "%m%d %H:%M") if args.start_time else None
 end_time = datetime.datetime.strptime(args.end_time, "%m%d %H:%M") if args.end_time else None
-outputFile = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "_analysis.txt"
+htmlHeader = """
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Log Analysis Results</title>
+	<style>
+		body {
+			font-family: Arial, sans-serif;
+			background-color: #f0f0f0;
+		}
+		h3 {
+			margin-top: 30px;
+			margin-bottom: 15px;
+			color: #2d3c4d;
+		}
+		table {
+			border-collapse: collapse;
+			margin-top: 10px;
+			margin-bottom: 30px;
+			background-color: white;
+			box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+			width: 100%;
+			max-width: 1200px;
+			margin-left: auto;
+			margin-right: auto;
+		}
+		th, td {
+			padding: 10px;
+			text-align: left;
+			border-bottom: 1px solid #ddd;
+			font-size: 14px;
+			color: #2d3c4d;
+		}
+		th {
+			background-color: #f2f2f2;
+			font-weight: bold;
+		}
+		tr:hover {
+			background-color: #f5f5f5;
+		}
+		a {
+			color: #0e7cd4;
+			text-decoration: none;
+		}
+		a:hover {
+			text-decoration: underline;
+		}
+	</style>
+</head>"""   # Thanks bing for beautifying the HTML report https://tinyurl.com/2l3hskkl :)
+
+if args.html:
+    outputFile = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "_analysis.html"
+    open(outputFile, "w").write(htmlHeader)
+else:
+    outputFile = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "_analysis.txt"
 
 def getLogFilesFromCommandLine():
     logFiles = []
@@ -148,8 +204,22 @@ if __name__ == "__main__":
             with open(logFile, "r") as f:
                 table = analyzeLogFiles(f, start_time, end_time)
         if table:
-            open(outputFile, "a").write("\n\n\nAnalysis of " + logFile + "\n\n")
-            open(outputFile, "a").write(tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence", "Troubleshooting Tips"], tablefmt="simple_grid"))
+            if args.html:
+                open(outputFile, "a").write("<h3>" + logFile + "</h3>")
+                open(outputFile, "a").write(tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence", "Troubleshooting Tips"], tablefmt="unsafehtml"))
+            else:
+                open(outputFile, "a").write("\n\n\nAnalysis of " + logFile + "\n\n")
+                open(outputFile, "a").write(tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence", "Troubleshooting Tips"], tablefmt="simple_grid"))
+        else:
+            if args.html:
+                askHelpMessage = """This log file is shinier than my keyboard ⌨️ - no issues to report! If you do find something out of the ordinary ☠️, <a href="https://github.com/yugabyte/yb-log-analyzer-py/issues/new?assignees=pgyogesh&labels=%23newmessage&template=add-new-message.md&title=%5BNew+Message%5D" target="_blank"> create a Github issue </a> and I'll put on my superhero 🦹‍♀️ cape to come to the rescue in future:\n"""
+                open(outputFile, "a").write("<h3>" + logFile + "</h3>")
+                open(outputFile, "a").write(askHelpMessage)
+            else:
+                askHelpMessage = """This log file is shinier than my keyboard ⌨️ - no issues to report! If you do find something out of the ordinary ☠️, create a Github issue and I'll put on my superhero 🦹‍♀️ cape to come to the rescue in future.
+                https://github.com/yugabyte/yb-log-analyzer-py/issues/new?assignees=pgyogesh&labels=%23newmessage&template=add-new-message.md&title=%5BNew+Message%5D\n"""
+                open(outputFile, "a").write("\n\n\nAnalysis of " + logFile + "\n\n")
+                open(outputFile, "a").write(askHelpMessage)
         if args.histogram or args.ALL:
            get_histogram(logFile)
         if args.word_count or args.ALL:
