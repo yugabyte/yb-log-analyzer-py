@@ -46,16 +46,19 @@ htmlHeader = """
 <!DOCTYPE html>
 <html>
 <head>
+    <script src="https://www.kryogenix.org/code/browser/sorttable/sorttable.js"></script>
 	<meta charset="utf-8">
 	<title>Log Analysis Results</title>
 	<style>
 		body {
 			font-family: Arial, sans-serif;
 			background-color: #f0f0f0;
+			text-align: center;
 		}
 		h3 {
 			margin-top: 30px;
 			margin-bottom: 15px;
+            text-align: center;
 			color: #2d3c4d;
 		}
 		table {
@@ -63,11 +66,13 @@ htmlHeader = """
 			margin-top: 10px;
 			margin-bottom: 30px;
 			background-color: white;
-			box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+			box-shadow: 0 5px 20px rgba(0,0,0,0.3);
 			width: 100%;
 			max-width: 1200px;
 			margin-left: auto;
 			margin-right: auto;
+			border-radius: 10px;
+			overflow:hidden;
 		}
 		th, td {
 			padding: 10px;
@@ -79,6 +84,7 @@ htmlHeader = """
 		th {
 			background-color: #f2f2f2;
 			font-weight: bold;
+			cursor: pointer;
 		}
 		tr:hover {
 			background-color: #f5f5f5;
@@ -206,7 +212,7 @@ if __name__ == "__main__":
         if table:
             if args.html:
                 open(outputFile, "a").write("<h3>" + logFile + "</h3>")
-                open(outputFile, "a").write(tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence", "Troubleshooting Tips"], tablefmt="unsafehtml"))
+                open(outputFile, "a").write(tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence", "Troubleshooting Tips"], tablefmt="html").replace("<table>", "<table class='sortable'>"))
             else:
                 open(outputFile, "a").write("\n\n\nAnalysis of " + logFile + "\n\n")
                 open(outputFile, "a").write(tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence", "Troubleshooting Tips"], tablefmt="simple_grid"))
