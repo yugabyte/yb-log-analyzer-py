@@ -53,12 +53,12 @@ htmlHeader = """
 		body {
 			font-family: Arial, sans-serif;
 			background-color: #f0f0f0;
-			text-align: center;
+			text-margin: 20px;
 		}
 		h3 {
 			margin-top: 30px;
 			margin-bottom: 15px;
-            text-align: center;
+            margin-left: 20px;
 			color: #2d3c4d;
 		}
 		table {
@@ -67,10 +67,8 @@ htmlHeader = """
 			margin-bottom: 30px;
 			background-color: white;
 			box-shadow: 0 5px 20px rgba(0,0,0,0.3);
-			width: 100%;
-			max-width: 1200px;
-			margin-left: auto;
-			margin-right: auto;
+			margin-left: 25px;
+			margin-right: 25px;
 			border-radius: 10px;
 			overflow:hidden;
 		}
@@ -78,7 +76,7 @@ htmlHeader = """
 			padding: 10px;
 			text-align: left;
 			border-bottom: 1px solid #ddd;
-			font-size: 14px;
+			font-size: 15px;
 			color: #2d3c4d;
 		}
 		th {
@@ -95,6 +93,12 @@ htmlHeader = """
 		}
 		a:hover {
 			text-decoration: underline;
+		}
+        li {
+			text-align: left;
+		}
+        p {
+			margin-left: 20px;
 		}
 	</style>
 </head>"""   # Thanks bing for beautifying the HTML report https://tinyurl.com/2l3hskkl :)
@@ -189,6 +193,9 @@ def get_word_count(logFile):
    word_count(logFile)
 
 if __name__ == "__main__":
+    
+    filesWithNoErrors = []
+    
     if args.log_files:
         logFileList = getLogFilesFromCommandLine()
     elif args.directory:
@@ -202,6 +209,7 @@ if __name__ == "__main__":
     if type(logFileList) is not list:
         print("No log files found")
         exit(1)
+        
     for logFile in logFileList:
         if logFile.endswith(".gz"):
             with gzip.open(logFile, "rt") as f:
@@ -217,18 +225,26 @@ if __name__ == "__main__":
                 open(outputFile, "a").write("\n\n\nAnalysis of " + logFile + "\n\n")
                 open(outputFile, "a").write(tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence", "Troubleshooting Tips"], tablefmt="simple_grid"))
         else:
-            if args.html:
-                askHelpMessage = """This log file is shinier than my keyboard ⌨️ - no issues to report! If you do find something out of the ordinary ☠️, <a href="https://github.com/yugabyte/yb-log-analyzer-py/issues/new?assignees=pgyogesh&labels=%23newmessage&template=add-new-message.md&title=%5BNew+Message%5D" target="_blank"> create a Github issue </a> and I'll put on my superhero 🦹‍♀️ cape to come to the rescue in future:\n"""
-                open(outputFile, "a").write("<h3>" + logFile + "</h3>")
-                open(outputFile, "a").write(askHelpMessage)
-            else:
-                askHelpMessage = """This log file is shinier than my keyboard ⌨️ - no issues to report! If you do find something out of the ordinary ☠️, create a Github issue and I'll put on my superhero 🦹‍♀️ cape to come to the rescue in future.
-                https://github.com/yugabyte/yb-log-analyzer-py/issues/new?assignees=pgyogesh&labels=%23newmessage&template=add-new-message.md&title=%5BNew+Message%5D\n"""
-                open(outputFile, "a").write("\n\n\nAnalysis of " + logFile + "\n\n")
-                open(outputFile, "a").write(askHelpMessage)
-        if args.histogram or args.ALL:
+            filesWithNoErrors.append(logFile)
+    
+    if filesWithNoErrors:
+        if args.html:
+            askForHelpHtml = """<p> Below list of files are shinier than my keyboard ⌨️ - no issues to report! If you do find something out of the ordinary ☠️ in them, <a href="https://github.com/yugabyte/yb-log-analyzer-py/issues/new?assignees=pgyogesh&labels=%23newmessage&template=add-new-message.md&title=%5BNew+Message%5D" target="_blank"> create a Github issue </a> and I'll put on my superhero 🦹‍♀️ cape to come to the rescue in future:\n </p>"""
+            open(outputFile, "a").write(askForHelpHtml)
+            open(outputFile, "a").write("<ul>")
+            for file in filesWithNoErrors:
+                open(outputFile, "a").write("<li>" + file + "</li>")
+            open(outputFile, "a").write("</ul>")
+        else:
+            askForHelp = """\n\n Below list of files do not have any issues to report! If you do find something out of the ordinary in them, create a Github issue at:
+            https://github.com/yugabyte/yb-log-analyzer-py/issues/new?assignees=pgyogesh&labels=%23newmessage&template=add-new-message.md&title=%5BNew+Message%5D\n\n"""
+            open(outputFile, "a").write(askForHelp)
+            for file in filesWithNoErrors:
+                open(outputFile, "a").write('- ' + file + "\n")
+
+    if args.histogram or args.ALL:
            get_histogram(logFile)
-        if args.word_count or args.ALL:
+    if args.word_count or args.ALL:
            get_word_count(logFile)
     print("Analysis complete. Results are in " + outputFile)
     

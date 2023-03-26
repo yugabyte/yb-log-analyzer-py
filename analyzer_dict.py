@@ -21,7 +21,7 @@ regex_patterns = {
 solutions = {
     "Soft memory limit exceeded": """Memory utilization has reached `memory_limit_soft_percentage` (default 85%) and system has started throttling read/write operations.\n
     KB Article: https://support.yugabyte.com/hc/en-us/articles/360058731252-How-to-optimize-and-resolve-common-memory-errors-in-Yugabyte""",
-    "Number of aborted transactions not cleaned up on account of reaching size limits": """This typically means that we need to run compaction on offending tablets.<br> \n
+    "Number of aborted transactions not cleaned up on account of reaching size limits": """This typically means that we need to run compaction on offending tablets \n
     Similar Zendesk ticket: https://yugabyte.zendesk.com/agent/tickets/5416""",
     "Long wait for safe op id": """Write on disk is slow. This could be because of slow disk or load on the system.""",
     "SST files limit exceeded": """Tablet has too many SST files. This could be because of slow compaction or load on the system.\n
