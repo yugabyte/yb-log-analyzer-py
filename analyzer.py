@@ -103,6 +103,10 @@ htmlHeader = """
 	</style>
 </head>"""   # Thanks bing for beautifying the HTML report https://tinyurl.com/2l3hskkl :)
 
+
+listOfErrorsInFile = []
+listOfErrorsInAllFiles = []
+
 if args.html:
     outputFile = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "_analysis.html"
     open(outputFile, "w").write(htmlHeader)
@@ -195,7 +199,7 @@ def get_word_count(logFile):
 if __name__ == "__main__":
     
     filesWithNoErrors = []
-    
+
     if args.log_files:
         logFileList = getLogFilesFromCommandLine()
     elif args.directory:
@@ -220,10 +224,14 @@ if __name__ == "__main__":
         if table:
             if args.html:
                 open(outputFile, "a").write("<h3>" + logFile + "</h3>")
-                open(outputFile, "a").write(tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence", "Troubleshooting Tips"], tablefmt="html").replace("<table>", "<table class='sortable'>"))
+                content = tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence", "Troubleshooting Tips"], tablefmt="html")
+                content = content.replace("$line-break$", "<br>").replace("$tab$", "&nbsp;&nbsp;&nbsp;&nbsp;").replace("$start-code$", "<code>").replace("$end-code$", "</code>").replace("$start-bold$", "<b>").replace("$end-bold$", "</b>").replace("$start-italic$", "<i>").replace("$end-italic$", "</i>")
+                open(outputFile, "a").write(content)
             else:
                 open(outputFile, "a").write("\n\n\nAnalysis of " + logFile + "\n\n")
-                open(outputFile, "a").write(tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence", "Troubleshooting Tips"], tablefmt="simple_grid"))
+                content = tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence", "Troubleshooting Tips"], tablefmt="simple_grid")
+                content = content.replace("$line-break$", "\n").replace("$tab$", "\t").replace("$start-code$", "`").replace("$end-code$", "`").replace("$start-bold$", "**").replace("$end-bold$", "**").replace("$start-italic$", "*").replace("$end-italic$", "*")
+                open(outputFile, "a").write(content)
         else:
             filesWithNoErrors.append(logFile)
     
