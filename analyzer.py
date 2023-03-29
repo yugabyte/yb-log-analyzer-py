@@ -53,9 +53,10 @@ htmlHeader = """
 		body {
 			font-family: Arial, sans-serif;
 			background-color: #f0f0f0;
-			text-margin: 20px;
+            margin-left: 20px;
+            line-height: 1.5;
 		}
-		h3 {
+		h2, h3 {
 			margin-top: 30px;
 			margin-bottom: 15px;
             margin-left: 20px;
@@ -86,6 +87,7 @@ htmlHeader = """
 		}
 		tr:hover {
 			background-color: #f5f5f5;
+            cursor: pointer;
 		}
 		a {
 			color: #0e7cd4;
@@ -104,8 +106,8 @@ htmlHeader = """
 </head>"""   # Thanks bing for beautifying the HTML report https://tinyurl.com/2l3hskkl :)
 
 
-listOfErrorsInFile = []
 listOfErrorsInAllFiles = []
+listOfErrorsInFile = []
 
 if args.html:
     outputFile = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "_analysis.html"
@@ -162,13 +164,14 @@ def analyzeLogFiles(logFile, start_time=None, end_time=None):
                         "numOccurrences": 0,                                                                                                          # Number of occurrences of the message
                         "firstOccurrenceTime": None,                                                                                                 # Time of the first occurrence of the message
                         "lastOccurrenceTime": None,                                                                                                  # Time of the last occurrence of the message
-                        "solution": solutions[message],                                                                                                # Solution for the message
                     }                                                                                                                              # End of dictionary for the message            
                 results[message]["numOccurrences"] += 1                                                                                       # Increment the number of occurrences of the message
                 time = line.split()[0][1:] + " " + line.split()[1]                                                                             # Get the time from the log line
                 if not results[message]["firstOccurrenceTime"]:                                                                              # If the first occurrence time is not set
                     results[message]["firstOccurrenceTime"] = time                                                                               # set it 
                 results[message]["lastOccurrenceTime"] = time                                                                                # Set time as last occurrence time
+                listOfErrorsInFile.append(message)
+
     if args.sort_by == 'NO':
         sortedDict = OrderedDict(sorted(results.items(), key=lambda x: x[1]["numOccurrences"], reverse=True))
     elif args.sort_by == 'LO':
@@ -176,17 +179,19 @@ def analyzeLogFiles(logFile, start_time=None, end_time=None):
     elif args.sort_by == 'FO' or True:
         sortedDict = OrderedDict(sorted(results.items(), key=lambda x: x[1]["firstOccurrenceTime"]))
     table = []
+    message_id = 0
     for message, info in sortedDict.items():
+        message_id += 1
         table.append(
             [
+                message_id,
                 info["numOccurrences"],
                 message,
                 info["firstOccurrenceTime"],
                 info["lastOccurrenceTime"],
-                info["solution"],
             ]
         )
-    return table
+    return table, listOfErrorsInFile
     
 def get_histogram(logFile):
    print ("\nHistogram of logs creating time period\n")
@@ -196,6 +201,9 @@ def get_word_count(logFile):
    print ("\nMost widely used word in logs\n")
    word_count(logFile)
 
+def getSolution(message):
+    return solutions[message]
+    
 if __name__ == "__main__":
     
     filesWithNoErrors = []
@@ -217,23 +225,39 @@ if __name__ == "__main__":
     for logFile in logFileList:
         if logFile.endswith(".gz"):
             with gzip.open(logFile, "rt") as f:
-                table = analyzeLogFiles(f, start_time, end_time)
+                table, listOfErrorsInFile = analyzeLogFiles(f, start_time, end_time)        
         else:
             with open(logFile, "r") as f:
-                table = analyzeLogFiles(f, start_time, end_time)
+                table, listOfErrorsInFile = analyzeLogFiles(f, start_time, end_time)
         if table:
             if args.html:
                 open(outputFile, "a").write("<h3>" + logFile + "</h3>")
-                content = tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence", "Troubleshooting Tips"], tablefmt="html")
+                content = tabulate.tabulate(table, headers=["ID","Occurrences", "Message", "First Occurrence", "Last Occurrence"], tablefmt="html")
                 content = content.replace("$line-break$", "<br>").replace("$tab$", "&nbsp;&nbsp;&nbsp;&nbsp;").replace("$start-code$", "<code>").replace("$end-code$", "</code>").replace("$start-bold$", "<b>").replace("$end-bold$", "</b>").replace("$start-italic$", "<i>").replace("$end-italic$", "</i>")
                 open(outputFile, "a").write(content)
             else:
                 open(outputFile, "a").write("\n\n\nAnalysis of " + logFile + "\n\n")
-                content = tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence", "Troubleshooting Tips"], tablefmt="simple_grid")
+                content = tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence"], tablefmt="simple_grid")
                 content = content.replace("$line-break$", "\n").replace("$tab$", "\t").replace("$start-code$", "`").replace("$end-code$", "`").replace("$start-bold$", "**").replace("$end-bold$", "**").replace("$start-italic$", "*").replace("$end-italic$", "*")
                 open(outputFile, "a").write(content)
         else:
             filesWithNoErrors.append(logFile)
+        # Merge the list of errors in this file with the global list of errors
+        listOfErrorsInAllFiles = list(set(listOfErrorsInAllFiles) | set(listOfErrorsInFile))
+        
+    if listOfErrorsInAllFiles:
+        open(outputFile, "a").write("<h2> Troubleshooting Tips </h2>")
+        for error in listOfErrorsInAllFiles:
+            solution = getSolution(error)
+            open(outputFile, "a").write("<h3>" + error + " </h3>")
+            content = solution.replace("$line-break$", "<br>").replace("$tab$", "&nbsp;&nbsp;&nbsp;&nbsp;").replace("$start-code$", "<code>").replace("$end-code$", "</code>").replace("$start-bold$", "<b>").replace("$end-bold$", "</b>").replace("$start-italic$", "<i>").replace("$end-italic$", "</i>")
+            open(outputFile, "a").write( "<p>" + content + " </p>")
+            open(outputFile, "a").write("<hr>")
+    if args.histogram or args.ALL:
+           get_histogram(logFile)
+    if args.word_count or args.ALL:
+           get_word_count(logFile)
+    print("Analysis complete. Results are in " + outputFile)
     
     if filesWithNoErrors:
         if args.html:
@@ -248,13 +272,5 @@ if __name__ == "__main__":
             https://github.com/yugabyte/yb-log-analyzer-py/issues/new?assignees=pgyogesh&labels=%23newmessage&template=add-new-message.md&title=%5BNew+Message%5D\n\n"""
             open(outputFile, "a").write(askForHelp)
             for file in filesWithNoErrors:
-                open(outputFile, "a").write('- ' + file + "\n")
-
-    if args.histogram or args.ALL:
-           get_histogram(logFile)
-    if args.word_count or args.ALL:
-           get_word_count(logFile)
-    print("Analysis complete. Results are in " + outputFile)
-    
-    
+                open(outputFile, "a").write('- ' + file + "\n")    
     
