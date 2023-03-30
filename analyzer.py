@@ -233,7 +233,7 @@ if __name__ == "__main__":
             if args.html:
                 open(outputFile, "a").write("<h3>" + logFile + "</h3>")
                 content = tabulate.tabulate(table, headers=["ID","Occurrences", "Message", "First Occurrence", "Last Occurrence"], tablefmt="html")
-                content = content.replace("$line-break$", "<br>").replace("$tab$", "&nbsp;&nbsp;&nbsp;&nbsp;").replace("$start-code$", "<code>").replace("$end-code$", "</code>").replace("$start-bold$", "<b>").replace("$end-bold$", "</b>").replace("$start-italic$", "<i>").replace("$end-italic$", "</i>")
+                content = content.replace("$line-break$", "<br>").replace("$tab$", "&nbsp;&nbsp;&nbsp;&nbsp;").replace("$start-code$", "<code>").replace("$end-code$", "</code>").replace("$start-bold$", "<b>").replace("$end-bold$", "</b>").replace("$start-italic$", "<i>").replace("$end-italic$", "</i>").replace("<table>", "<table class='sortable'>")
                 open(outputFile, "a").write(content)
             else:
                 open(outputFile, "a").write("\n\n\nAnalysis of " + logFile + "\n\n")
