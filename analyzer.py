@@ -51,6 +51,17 @@ htmlHeader = """
 	<title>Log Analysis Results</title>
     <script type="text/javascript">
     window.onload = function() {
+		var toc = document.getElementById("toc");
+			var headings = document.getElementsByTagName("h2");
+			for (var i = 0; i < headings.length; i++) {
+				var heading = headings[i];
+				var anchor = document.createElement("a");
+				anchor.href = "#" + heading.id;
+				anchor.innerHTML = heading.innerHTML;
+				var li = document.createElement("li");
+				li.appendChild(anchor);
+				toc.appendChild(li); 
+			}
       var rows = document.querySelectorAll("#main-table tbody tr");
       for (var i = 0; i < rows.length; i++) {
         rows[i].onclick = function() {
@@ -127,9 +138,21 @@ htmlHeader = """
         p {
 			margin-left: 20px;
 		}
+        #toc {
+            position:relative;
+            top: 0;
+            width: auto;
+            height: 100%;
+            overflow: auto;
+            background-color: #f0f0f0;
+            margin-left: 25px;
+          }
 	</style>
 </head>"""   # Thanks bing for beautifying the HTML report https://tinyurl.com/2l3hskkl :)
 
+toc = """<div id="toc">
+	<h2>Table of Contents</h2>
+</div>"""
 
 listOfErrorsInAllFiles = []
 listOfErrorsInFile = []
@@ -137,6 +160,7 @@ listOfErrorsInFile = []
 if args.html:
     outputFile = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "_analysis.html"
     open(outputFile, "w").write(htmlHeader)
+    open(outputFile, "a").write(toc)
 else:
     outputFile = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "_analysis.txt"
 
@@ -254,7 +278,8 @@ if __name__ == "__main__":
                 table, listOfErrorsInFile = analyzeLogFiles(f, start_time, end_time)
         if table:
             if args.html:
-                open(outputFile, "a").write("<h3>" + logFile + "</h3>")
+                formatLogFileForHTMLId = logFile.replace("/", "-").replace(".", "-").replace(" ", "-").replace(":", "-")
+                open(outputFile, "a").write("<h2 id=" + formatLogFileForHTMLId + ">" + logFile + "</h2>")
                 content = tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence"], tablefmt="html")
                 content = content.replace("$line-break$", "<br>").replace("$tab$", "&nbsp;&nbsp;&nbsp;&nbsp;").replace("$start-code$", "<code>").replace("$end-code$", "</code>").replace("$start-bold$", "<b>").replace("$end-bold$", "</b>").replace("$start-italic$", "<i>").replace("$end-italic$", "</i>").replace("<table>", "<table class='sortable' id='main-table'>")
                 open(outputFile, "a").write(content)
@@ -269,7 +294,7 @@ if __name__ == "__main__":
         listOfErrorsInAllFiles = list(set(listOfErrorsInAllFiles) | set(listOfErrorsInFile))
         
     if listOfErrorsInAllFiles:
-        open(outputFile, "a").write("<h2> Troubleshooting Tips </h2>")
+        open(outputFile, "a").write("<h2 id=troubleshooting-tips> Troubleshooting Tips </h2>")
         for error in listOfErrorsInAllFiles:
             solution = getSolution(error)
             formatErrorForHTMLId = error.replace(" ", "-").lower()
@@ -287,6 +312,7 @@ if __name__ == "__main__":
     
     if filesWithNoErrors:
         if args.html:
+            open(outputFile, "a").write("<h2 id=files-with-no-issues> Files with no issues </h2>")
             askForHelpHtml = """<p> Below list of files are shinier than my keyboard ⌨️ - no issues to report! If you do find something out of the ordinary ☠️ in them, <a href="https://github.com/yugabyte/yb-log-analyzer-py/issues/new?assignees=pgyogesh&labels=%23newmessage&template=add-new-message.md&title=%5BNew+Message%5D" target="_blank"> create a Github issue </a> and I'll put on my superhero 🦹‍♀️ cape to come to the rescue in future:\n </p>"""
             open(outputFile, "a").write(askForHelpHtml)
             open(outputFile, "a").write("<ul>")
