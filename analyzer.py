@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from analyzer_dict import regex_patterns, solutions
 from collections import OrderedDict
 import datetime
@@ -49,6 +49,21 @@ htmlHeader = """
     <script src="https://www.kryogenix.org/code/browser/sorttable/sorttable.js"></script>
 	<meta charset="utf-8">
 	<title>Log Analysis Results</title>
+    <script type="text/javascript">
+    window.onload = function() {
+      var rows = document.querySelectorAll("#main-table tbody tr");
+      for (var i = 0; i < rows.length; i++) {
+        rows[i].onclick = function() {
+          var rowHeading = this.querySelector("td:nth-of-type(2)").innerHTML;
+          var targetHeading = document.getElementById(rowHeading.toLowerCase().replace(/\s/g, "-").replace(/-+$/, ""));
+          if (targetHeading) {
+            var targetOffset = targetHeading.offsetTop - 10;
+            window.scrollTo(0, targetOffset);
+          }
+        }
+      }
+    }
+  </script>
 	<style>
 		body {
 			font-family: Arial, sans-serif;
@@ -181,10 +196,8 @@ def analyzeLogFiles(logFile, start_time=None, end_time=None):
     table = []
     message_id = 0
     for message, info in sortedDict.items():
-        message_id += 1
         table.append(
             [
-                message_id,
                 info["numOccurrences"],
                 message,
                 info["firstOccurrenceTime"],
@@ -232,8 +245,8 @@ if __name__ == "__main__":
         if table:
             if args.html:
                 open(outputFile, "a").write("<h3>" + logFile + "</h3>")
-                content = tabulate.tabulate(table, headers=["ID","Occurrences", "Message", "First Occurrence", "Last Occurrence"], tablefmt="html")
-                content = content.replace("$line-break$", "<br>").replace("$tab$", "&nbsp;&nbsp;&nbsp;&nbsp;").replace("$start-code$", "<code>").replace("$end-code$", "</code>").replace("$start-bold$", "<b>").replace("$end-bold$", "</b>").replace("$start-italic$", "<i>").replace("$end-italic$", "</i>").replace("<table>", "<table class='sortable'>")
+                content = tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence"], tablefmt="html")
+                content = content.replace("$line-break$", "<br>").replace("$tab$", "&nbsp;&nbsp;&nbsp;&nbsp;").replace("$start-code$", "<code>").replace("$end-code$", "</code>").replace("$start-bold$", "<b>").replace("$end-bold$", "</b>").replace("$start-italic$", "<i>").replace("$end-italic$", "</i>").replace("<table>", "<table class='sortable' id='main-table'>")
                 open(outputFile, "a").write(content)
             else:
                 open(outputFile, "a").write("\n\n\nAnalysis of " + logFile + "\n\n")
@@ -249,7 +262,8 @@ if __name__ == "__main__":
         open(outputFile, "a").write("<h2> Troubleshooting Tips </h2>")
         for error in listOfErrorsInAllFiles:
             solution = getSolution(error)
-            open(outputFile, "a").write("<h3>" + error + " </h3>")
+            formatErrorForHTMLId = error.replace(" ", "-").lower()
+            open(outputFile, "a").write("<h3 id=" + formatErrorForHTMLId + ">" + error + " </h3>")
             content = solution.replace("$line-break$", "<br>").replace("$tab$", "&nbsp;&nbsp;&nbsp;&nbsp;").replace("$start-code$", "<code>").replace("$end-code$", "</code>").replace("$start-bold$", "<b>").replace("$end-bold$", "</b>").replace("$start-italic$", "<i>").replace("$end-italic$", "</i>")
             open(outputFile, "a").write( "<p>" + content + " </p>")
             open(outputFile, "a").write("<hr>")
