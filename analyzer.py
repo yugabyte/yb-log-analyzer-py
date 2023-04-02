@@ -59,11 +59,21 @@ htmlHeader = """
           if (targetHeading) {
             var targetOffset = targetHeading.offsetTop - 10;
             window.scrollTo(0, targetOffset);
+			// highlight the the heading and its content for 2 seconds with #C6C6C6 background color and with good animation
+			targetHeading.style.backgroundColor = "#C6C6C6";
+			targetHeading.style.transition = "background-color 1s ease-in-out";
+			var targetContent = targetHeading.nextElementSibling;
+			targetContent.style.backgroundColor = "#C6C6C6";
+			targetContent.style.transition = "background-color 1s ease-in-out";
+			setTimeout(function() {
+			  targetHeading.style.backgroundColor = "";
+			  targetContent.style.backgroundColor = "";
+			}, 2000);
           }
         }
       }
     }
-  </script>
+    </script>
 	<style>
 		body {
 			font-family: Arial, sans-serif;
@@ -264,7 +274,9 @@ if __name__ == "__main__":
             solution = getSolution(error)
             formatErrorForHTMLId = error.replace(" ", "-").lower()
             open(outputFile, "a").write("<h3 id=" + formatErrorForHTMLId + ">" + error + " </h3>")
-            content = solution.replace("$line-break$", "<br>").replace("$tab$", "&nbsp;&nbsp;&nbsp;&nbsp;").replace("$start-code$", "<code>").replace("$end-code$", "</code>").replace("$start-bold$", "<b>").replace("$end-bold$", "</b>").replace("$start-italic$", "<i>").replace("$end-italic$", "</i>")
+            content = solution.replace("$line-break$", "<br>").replace("$tab$", "&nbsp;&nbsp;&nbsp;&nbsp;").replace("$start-code$", "<code>").replace("$end-code$", "</code>")
+            content = content.replace("$start-bold$", "<b>").replace("$end-bold$", "</b>").replace("$start-italic$", "<i>").replace("$end-italic$", "</i>")
+            content = content.replace("$start-link$", "<a href='").replace("$end-link$", "' target='_blank'>").replace("$end-link-text$", "</a>")
             open(outputFile, "a").write( "<p>" + content + " </p>")
             open(outputFile, "a").write("<hr>")
     if args.histogram or args.ALL:
