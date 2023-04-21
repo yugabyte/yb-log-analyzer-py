@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
+from multiprocessing import Pool
 from analyzer_dict import regex_patterns, solutions
 from analyzer_lib import *
 from histogram import *
 from collections import OrderedDict
+import logging
 import datetime
 import argparse
 import re
@@ -18,6 +20,7 @@ parser = argparse.ArgumentParser(description="Log Analyzer for YugabyteDB logs")
 parser.add_argument("-l", "--log_files", nargs='+', help="List of log file[s]")
 parser.add_argument("-d", "--directory", help="Directory containing log files")
 parser.add_argument("--support_bundle", help="Path to support bundle")
+parser.add_argument("-p", "--parallel", metavar="N", dest='numThreads', default=1, type=int, help="Run in parallel mode with N threads")
 parser.add_argument("-H", "--histogram", action="store_true", help="Generate histogram graph")
 parser.add_argument("-wc",'--word_count', action="store_true",help='List top 20 word count')
 parser.add_argument('-A','--ALL', action="store_true", help='FULL Health Check')
@@ -42,19 +45,28 @@ if args.end_time:
         print("Incorrect end time format, should be MMDD HH:MM")
         exit(1)
 
+# Define start and end time
 start_time = datetime.datetime.strptime(args.start_time, "%m%d %H:%M") if args.start_time else None
 end_time = datetime.datetime.strptime(args.end_time, "%m%d %H:%M") if args.end_time else None
 
+# Define the lists to store the results
 listOfErrorsInAllFiles = []
 listOfErrorsInFile = []
+listOfFilesWithNoErrors = []
+listOfAllFilesWithNoErrors = []
+writeLock = False
 
-if args.html:
-    outputFile = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "_analysis.html"
-    open(outputFile, "w").write(htmlHeader)
-    open(outputFile, "a").write(toc)
-else:
-    outputFile = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "_analysis.txt"
+# Setup a logger
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s:%(levelname)s:- %(message)s')
+console_handler.setFormatter(formatter)
+logger.addHandler(console_handler)
+
+# Function to get the log files from the command line
 def getLogFilesFromCommandLine():
     logFiles = []
     for file in args.log_files:
@@ -63,6 +75,7 @@ def getLogFilesFromCommandLine():
             logFiles.append(file)
     return logFiles
 
+# Function to get the log files from the directory
 def getLogFilesFromDirectory(logDirectory):
     logFiles = []
     for root, dirs, files in os.walk(logDirectory):
@@ -71,6 +84,7 @@ def getLogFilesFromDirectory(logDirectory):
                 logFiles.append(os.path.join(root, file))
     return logFiles
 
+# Function to get the log files from the support bundle -- Will be deprecated
 def getLogFilesFromSupportBundle(supportBundle):
     logFiles = []
     if supportBundle.endswith(".tar.gz"):
@@ -83,19 +97,22 @@ def getLogFilesFromSupportBundle(supportBundle):
         logFiles = getLogFilesFromDirectory(supportBundle)
     return logFiles
 
+# Function to get the time from the log line
 def getTimeFromLog(line):
     timeFromLog = line.split(" ")[0][1:] + " " + line.split(" ")[1][:5]
     timestamp = datetime.datetime.strptime(timeFromLog, "%m%d %H:%M")
     re
 
+# Function to get all the tar files
 def getArchiveFiles(logDirectory):
     archievedFiles = []
-    for root, dirs, files in os.walk('sample_logs'):
+    for root, dirs, files in os.walk(logDirectory):
         for file in files:
             if file.endswith(".tar.gz"):
                 archievedFiles.append(os.path.join(root,file))
     return archievedFiles
-        
+    
+# Function to extract all the tar files    
 def extractAllTarFiles(logDirectory):
     extractedFiles = []
     extractedAll = False
@@ -104,19 +121,26 @@ def extractAllTarFiles(logDirectory):
         for file in getArchiveFiles(logDirectory):
             extractedAll = False
             if file not in extractedFiles:
-                print("Extracting file {}".format(file))
+                logger.info("Extracting file {}".format(file))
                 with tarfile.open(file, "r:gz") as tar:
                     tar.extractall(os.path.dirname(file))
                 extractedFiles.append(file)
         if len(extractedFiles) >= len(getArchiveFiles(logDirectory)):
             extractedAll = True
-                
-def analyzeLogFiles(logFile, start_time=None, end_time=None):
+
+# Function to analyze the log files                
+def analyzeLogFiles(logFile, outputFile, start_time=None, end_time=None):
+    logger.info("Analyzing file {}".format(logFile))
+    global writeLock
+    if logFile.endswith(".gz"):
+        logs = gzip.open(logFile, "rt")
+    else:
+        logs = open(logFile, "r")
     try:
-        lines = logFile.readlines()                                                                                                             # Read all the lines in the log file
+        lines = logs.readlines()                                                                                                             # Read all the lines in the log file
     except UnicodeDecodeError as e:
-        print("Skipping file {} as it is not a text file".format(logFile.name))
-        return
+        logger.warning("Skipping file {} as it is not a text file".format(logFile))
+        return listOfErrorsInFile, listOfFilesWithNoErrors
     results = {}                                                                                                                      # Dictionary to store the results
     for line in lines:                                                                                                                # For each line in the log file           
         for message, pattern in regex_patterns.items():                                                                                     # For each message and pattern
@@ -142,7 +166,6 @@ def analyzeLogFiles(logFile, start_time=None, end_time=None):
     elif args.sort_by == 'FO' or True:
         sortedDict = OrderedDict(sorted(results.items(), key=lambda x: x[1]["firstOccurrenceTime"]))
     table = []
-    message_id = 0
     for message, info in sortedDict.items():
         table.append(
             [
@@ -152,8 +175,29 @@ def analyzeLogFiles(logFile, start_time=None, end_time=None):
                 info["lastOccurrenceTime"],
             ]
         )
-    return table, listOfErrorsInFile
-    
+    if table:
+        while writeLock:
+            time.sleep(1)
+        writeLock = True
+        if args.html:
+                formatLogFileForHTMLId = logFile.replace("/", "-").replace(".", "-").replace(" ", "-").replace(":", "-")
+                open(outputFile, "a").write("<h2 id=" + formatLogFileForHTMLId + ">" + logFile + "</h2>")
+                content = tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence"], tablefmt="html")
+                content = content.replace("$line-break$", "<br>").replace("$tab$", "&nbsp;&nbsp;&nbsp;&nbsp;").replace("$start-code$", "<code>").replace("$end-code$", "</code>").replace("$start-bold$", "<b>").replace("$end-bold$", "</b>").replace("$start-italic$", "<i>").replace("$end-italic$", "</i>").replace("<table>", "<table class='sortable' id='main-table'>")
+                open(outputFile, "a").write(content)
+        else:
+                open(outputFile, "a").write("\n\n\nAnalysis of " + logFile + "\n\n")
+                content = tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence"], tablefmt="simple_grid")
+                content = content.replace("$line-break$", "\n").replace("$tab$", "\t").replace("$start-code$", "`").replace("$end-code$", "`").replace("$start-bold$", "**").replace("$end-bold$", "**").replace("$start-italic$", "*").replace("$end-italic$", "*")
+                open(outputFile, "a").write(content)
+        writeLock = False
+    else:
+        listOfFilesWithNoErrors.append(logFile)
+    logs.close()
+    logger.info("Finished analyzing file {}".format(logFile))
+    return listOfErrorsInFile, listOfFilesWithNoErrors
+        
+
 def get_histogram(logFile):
    print ("\nHistogram of logs creating time period\n")
    histogram(logFile)
@@ -167,8 +211,14 @@ def getSolution(message):
     
 if __name__ == "__main__":
     
-    filesWithNoErrors = []
-
+    # Create output file
+    if args.html:
+        outputFile = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "_analysis.html"
+        open(outputFile, "a").write(htmlHeader)
+    else:
+        outputFile = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "_analysis.txt"
+    
+    # Get log files
     if args.log_files:
         logFileList = getLogFilesFromCommandLine()
     elif args.directory:
@@ -177,37 +227,23 @@ if __name__ == "__main__":
     elif args.support_bundle:
         logFileList = getLogFilesFromSupportBundle(args.support_bundle)
     else:
-        print("Please specify a log file, directory or support bundle")
+        logger.error("Please specify a log file, directory or support bundle")
         exit(1)
 
+    # Check if log files were found
     if type(logFileList) is not list:
-        print("No log files found")
+        logger.warning("No log files found")
         exit(1)
-        
-    for logFile in logFileList:
-        if logFile.endswith(".gz"):
-            with gzip.open(logFile, "rt") as f:
-                table, listOfErrorsInFile = analyzeLogFiles(f, start_time, end_time)        
-        else:
-            with open(logFile, "r") as f:
-                table, listOfErrorsInFile = analyzeLogFiles(f, start_time, end_time)
-        if table:
-            if args.html:
-                formatLogFileForHTMLId = logFile.replace("/", "-").replace(".", "-").replace(" ", "-").replace(":", "-")
-                open(outputFile, "a").write("<h2 id=" + formatLogFileForHTMLId + ">" + logFile + "</h2>")
-                content = tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence"], tablefmt="html")
-                content = content.replace("$line-break$", "<br>").replace("$tab$", "&nbsp;&nbsp;&nbsp;&nbsp;").replace("$start-code$", "<code>").replace("$end-code$", "</code>").replace("$start-bold$", "<b>").replace("$end-bold$", "</b>").replace("$start-italic$", "<i>").replace("$end-italic$", "</i>").replace("<table>", "<table class='sortable' id='main-table'>")
-                open(outputFile, "a").write(content)
-            else:
-                open(outputFile, "a").write("\n\n\nAnalysis of " + logFile + "\n\n")
-                content = tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence"], tablefmt="simple_grid")
-                content = content.replace("$line-break$", "\n").replace("$tab$", "\t").replace("$start-code$", "`").replace("$end-code$", "`").replace("$start-bold$", "**").replace("$end-bold$", "**").replace("$start-italic$", "*").replace("$end-italic$", "*")
-                open(outputFile, "a").write(content)
-        else:
-            filesWithNoErrors.append(logFile)
-        # Merge the list of errors in this file with the global list of errors
-        listOfErrorsInAllFiles = list(set(listOfErrorsInAllFiles) | set(listOfErrorsInFile))
-        
+    
+    
+    # Analyze log files
+    pool = Pool(processes=args.numThreads)
+    for listOfErrorsInFile, listOfFilesWithNoErrors in pool.starmap(analyzeLogFiles, [(file, outputFile, args.start_time, args.end_time) for file in logFileList]):
+        # Append list of errors in each file to the list of errors in all files without duplicates
+        listOfErrorsInAllFiles = list(set(listOfErrorsInAllFiles + listOfErrorsInFile))
+        listOfAllFilesWithNoErrors = list(set(listOfAllFilesWithNoErrors + listOfFilesWithNoErrors))
+    
+    # Write troubleshooting tips
     if listOfErrorsInAllFiles:
         open(outputFile, "a").write("<h2 id=troubleshooting-tips> Troubleshooting Tips </h2>")
         for error in listOfErrorsInAllFiles:
@@ -219,25 +255,22 @@ if __name__ == "__main__":
             content = content.replace("$start-link$", "<a href='").replace("$end-link$", "' target='_blank'>").replace("$end-link-text$", "</a>")
             open(outputFile, "a").write( "<p>" + content + " </p>")
             open(outputFile, "a").write("<hr>")
-    if args.histogram or args.ALL:
-           get_histogram(logFile)
-    if args.word_count or args.ALL:
-           get_word_count(logFile)
-    print("Analysis complete. Results are in " + outputFile)
+    logger.info("Analysis complete. Results are in " + outputFile)
     
-    if filesWithNoErrors:
+    # Write list of files with no errors
+    if listOfAllFilesWithNoErrors:
         if args.html:
             open(outputFile, "a").write("<h2 id=files-with-no-issues> Files with no issues </h2>")
             askForHelpHtml = """<p> Below list of files are shinier than my keyboard ⌨️ - no issues to report! If you do find something out of the ordinary ☠️ in them, <a href="https://github.com/yugabyte/yb-log-analyzer-py/issues/new?assignees=pgyogesh&labels=%23newmessage&template=add-new-message.md&title=%5BNew+Message%5D" target="_blank"> create a Github issue </a> and I'll put on my superhero 🦹‍♀️ cape to come to the rescue in future:\n </p>"""
             open(outputFile, "a").write(askForHelpHtml)
             open(outputFile, "a").write("<ul>")
-            for file in filesWithNoErrors:
+            for file in listOfAllFilesWithNoErrors:
                 open(outputFile, "a").write("<li>" + file + "</li>")
             open(outputFile, "a").write("</ul>")
         else:
             askForHelp = """\n\n Below list of files do not have any issues to report! If you do find something out of the ordinary in them, create a Github issue at:
             https://github.com/yugabyte/yb-log-analyzer-py/issues/new?assignees=pgyogesh&labels=%23newmessage&template=add-new-message.md&title=%5BNew+Message%5D\n\n"""
             open(outputFile, "a").write(askForHelp)
-            for file in filesWithNoErrors:
+            for file in listOfAllFilesWithNoErrors:
                 open(outputFile, "a").write('- ' + file + "\n")    
     

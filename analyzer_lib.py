@@ -7,17 +7,35 @@ htmlHeader = """
 	<title>Log Analysis Results</title>
     <script type="text/javascript">
     window.onload = function() {
-		var toc = document.getElementById("toc");
-			var headings = document.getElementsByTagName("h2");
-			for (var i = 0; i < headings.length; i++) {
-				var heading = headings[i];
-				var anchor = document.createElement("a");
-				anchor.href = "#" + heading.id;
-				anchor.innerHTML = heading.innerHTML;
-				var li = document.createElement("li");
-				li.appendChild(anchor);
-				toc.appendChild(li); 
-			}
+var toc = document.getElementById("toc");
+  var headings = document.getElementsByTagName("h2");
+  var headingArray = [];
+
+  for (var i = 0; i < headings.length; i++) {
+    var heading = headings[i];
+    var anchor = document.createElement("a");
+    anchor.href = "#" + heading.id;
+    anchor.innerHTML = heading.innerHTML;
+    var li = document.createElement("li");
+    li.appendChild(anchor);
+    toc.appendChild(li);
+
+    // Store the text content and corresponding element for each heading in an array
+    headingArray.push({ textContent: heading.textContent, element: li });
+  }
+
+  // Sort the array of headings by text content
+  headingArray.sort((a, b) => a.textContent.localeCompare(b.textContent));
+
+  // Remove the existing list items from the table of contents
+  while (toc.firstChild) {
+    toc.removeChild(toc.firstChild);
+  }
+
+  // Add the sorted list items back to the table of contents
+  for (var i = 0; i < headingArray.length; i++) {
+    toc.appendChild(headingArray[i].element);
+  }
       var rows = document.querySelectorAll("#main-table tbody tr");
       for (var i = 0; i < rows.length; i++) {
         rows[i].onclick = function() {
@@ -104,8 +122,6 @@ htmlHeader = """
             margin-left: 25px;
           }
 	</style>
-</head>"""   # Thanks bing for beautifying the HTML report https://tinyurl.com/2l3hskkl :)
-
-toc = """<div id="toc">
-	<h3>Table of Contents</h3>
-</div>"""
+</head>
+<div id="toc">
+</div>"""   # Thanks bing for beautifying the HTML report https://tinyurl.com/2l3hskkl :)
