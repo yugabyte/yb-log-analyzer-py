@@ -24,6 +24,7 @@ parser.add_argument("-p", "--parallel", metavar="N", dest='numThreads', default=
 parser.add_argument("-H", "--histogram", action="store_true", help="Generate histogram graph")
 parser.add_argument("-wc",'--word_count', action="store_true",help='List top 20 word count')
 parser.add_argument('-A','--ALL', action="store_true", help='FULL Health Check')
+parser.add_argument("--skip_tar", action="store_true", help="Skip tar file")
 parser.add_argument("-t", "--from_time", metavar= "MMDD HH:MM", dest="start_time", help="Specify start time")
 parser.add_argument("-T", "--to_time", metavar= "MMDD HH:MM", dest="end_time", help="Specify end time")
 parser.add_argument("-s", "--sort-by", dest="sort_by", choices=['NO','LO','FO'], help="Sort by: \n NO = Number of occurrences, \n LO = Last Occurrence,\n FO = First Occurrence(Default)")
@@ -55,6 +56,7 @@ listOfErrorsInFile = []
 listOfFilesWithNoErrors = []
 listOfAllFilesWithNoErrors = []
 writeLock = False
+timeFromLog = '0101 00:00'
 
 # Setup a logger
 
@@ -99,9 +101,13 @@ def getLogFilesFromSupportBundle(supportBundle):
 
 # Function to get the time from the log line
 def getTimeFromLog(line):
-    timeFromLog = line.split(" ")[0][1:] + " " + line.split(" ")[1][:5]
-    timestamp = datetime.datetime.strptime(timeFromLog, "%m%d %H:%M")
-    re
+    global timeFromLog
+    try:
+        timeFromLog = line.split(" ")[0][1:] + " " + line.split(" ")[1][:5]
+        timestamp = datetime.datetime.strptime(timeFromLog, "%m%d %H:%M")
+    except ValueError as e:
+        timeFromLog = timeFromLog
+    return timestamp
 
 # Function to get all the tar files
 def getArchiveFiles(logDirectory):
@@ -222,7 +228,8 @@ if __name__ == "__main__":
     if args.log_files:
         logFileList = getLogFilesFromCommandLine()
     elif args.directory:
-        extractAllTarFiles(args.directory)
+        if not args.skip_tar:
+            extractAllTarFiles(args.directory)
         logFileList = getLogFilesFromDirectory(args.directory)
     elif args.support_bundle:
         logFileList = getLogFilesFromSupportBundle(args.support_bundle)
