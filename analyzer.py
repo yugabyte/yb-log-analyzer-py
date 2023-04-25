@@ -56,7 +56,6 @@ listOfErrorsInFile = []
 listOfFilesWithNoErrors = []
 listOfAllFilesWithNoErrors = []
 writeLock = False
-timeFromLog = '0101 00:00'
 
 # Setup a logger
 
@@ -100,13 +99,12 @@ def getLogFilesFromSupportBundle(supportBundle):
     return logFiles
 
 # Function to get the time from the log line
-def getTimeFromLog(line):
-    global timeFromLog
+def getTimeFromLog(line,previousTime):
     try:
-        timeFromLog = line.split(" ")[0][1:] + " " + line.split(" ")[1][:5]
-        timestamp = datetime.datetime.strptime(timeFromLog, "%m%d %H:%M")
-    except ValueError as e:
-        timeFromLog = timeFromLog
+        timeFromLogStr = line.split(" ")[0][1:] + " " + line.split(" ")[1][:5]
+        timestamp = datetime.datetime.strptime(timeFromLogStr, "%m%d %H:%M")
+    except Exception as e:
+        timestamp = datetime.datetime.strptime(previousTime, "%m%d %H:%M")
     return timestamp
 
 # Function to get all the tar files
@@ -136,6 +134,7 @@ def extractAllTarFiles(logDirectory):
 
 # Function to analyze the log files                
 def analyzeLogFiles(logFile, outputFile, start_time=None, end_time=None):
+    previousTime = '0101 00:00' # Default time
     logger.info("Analyzing file {}".format(logFile))
     global writeLock
     if logFile.endswith(".gz"):
@@ -148,10 +147,11 @@ def analyzeLogFiles(logFile, outputFile, start_time=None, end_time=None):
         logger.warning("Skipping file {} as it is not a text file".format(logFile))
         return listOfErrorsInFile, listOfFilesWithNoErrors
     results = {}                                                                                                                      # Dictionary to store the results
-    for line in lines:                                                                                                                # For each line in the log file           
+    for line in lines:                                                                                                                # For each line in the log file
+        timeFromLog = getTimeFromLog(line,previousTime)        
         for message, pattern in regex_patterns.items():                                                                                     # For each message and pattern
             match = re.search(pattern, line)                                                                                                # Search for the pattern in the line
-            if match and (not start_time or getTimeFromLog(line) >= start_time) and (not end_time or getTimeFromLog(line) <= end_time):     # If the pattern is found in the line and the line is within the time range          
+            if match and (not start_time or timeFromLog >= start_time) and (not end_time or timeFromLog <= end_time):     # If the pattern is found in the line and the line is within the time range          
                 if message not in results:                                                                                                     # If the message is not in the results dictionary, add it
                     results[message] = {                                                                                                           # Initialize the dictionary for the message
                         "numOccurrences": 0,                                                                                                          # Number of occurrences of the message
@@ -159,7 +159,7 @@ def analyzeLogFiles(logFile, outputFile, start_time=None, end_time=None):
                         "lastOccurrenceTime": None,                                                                                                  # Time of the last occurrence of the message
                     }                                                                                                                              # End of dictionary for the message            
                 results[message]["numOccurrences"] += 1                                                                                       # Increment the number of occurrences of the message
-                time = line.split()[0][1:] + " " + line.split()[1]                                                                             # Get the time from the log line
+                time = timeFromLog.strftime('%m%d %H:%M')                                                                            # Get the time from the log line
                 if not results[message]["firstOccurrenceTime"]:                                                                              # If the first occurrence time is not set
                     results[message]["firstOccurrenceTime"] = time                                                                               # set it 
                 results[message]["lastOccurrenceTime"] = time                                                                                # Set time as last occurrence time
@@ -245,7 +245,7 @@ if __name__ == "__main__":
     
     # Analyze log files
     pool = Pool(processes=args.numThreads)
-    for listOfErrorsInFile, listOfFilesWithNoErrors in pool.starmap(analyzeLogFiles, [(file, outputFile, args.start_time, args.end_time) for file in logFileList]):
+    for listOfErrorsInFile, listOfFilesWithNoErrors in pool.starmap(analyzeLogFiles, [(file, outputFile, start_time, end_time) for file in logFileList]):
         # Append list of errors in each file to the list of errors in all files without duplicates
         listOfErrorsInAllFiles = list(set(listOfErrorsInAllFiles + listOfErrorsInFile))
         listOfAllFilesWithNoErrors = list(set(listOfAllFilesWithNoErrors + listOfFilesWithNoErrors))
