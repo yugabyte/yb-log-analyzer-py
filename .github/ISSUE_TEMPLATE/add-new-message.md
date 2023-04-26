@@ -1,7 +1,7 @@
 ---
 name: Add new message
 about: Designed to help users of a common repository add new log messages and solutions.
-title: "[New Message]"
+title: "<Your log message>"
 labels: "#newmessage"
 assignees: pgyogesh
 
@@ -9,11 +9,7 @@ assignees: pgyogesh
 
 ## Description
 
-[Add a brief description of the issue you're addressing with this template, such as "Template for adding new log messages and solutions to a common repository."]
-
-## Log Message
-
-[Add the log message that you're addressing with this issue, such as "Rejecting Write request: Soft memory limit exceeded."]
+- Optional
 
 ## Regex Pattern
 
@@ -26,4 +22,4 @@ assignees: pgyogesh
 
 ## Additional Information
 
-[Add any additional information that's relevant to this issue, such as sample log file lines, context, or screenshots.]
+- optional
