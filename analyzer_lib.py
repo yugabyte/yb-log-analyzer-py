@@ -1,4 +1,5 @@
 htmlHeader = """
+
 <!DOCTYPE html>
 <html>
 
@@ -74,7 +75,7 @@ htmlHeader = """
 			margin-top: 30px;
 			margin-bottom: 15px;
 			margin-left: 20px;
-			color: #2d3c4d;
+			color: #000041;
 		}
 
 		table {
@@ -87,8 +88,12 @@ htmlHeader = """
 			margin-right: 25px;
 			border-radius: 10px;
 			overflow: hidden;
+			transition: transform 0.2s ease-in-out;
 		}
 
+		table:hover {
+			transform: scale(1.04);
+		}
 		th,
 		td {
 			padding: 10px;
@@ -96,12 +101,14 @@ htmlHeader = """
 			border-bottom: 1px solid #ddd;
 			font-size: 15px;
 			color: #2d3c4d;
+			border-bottom: 1px solid #E6E8F0;
 		}
 
 		th {
-			background-color: #f2f2f2;
-			font-weight: bold;
+			font-weight: 700;
 			cursor: pointer;
+			color: #000041;
+			background-color: #F5F7FF;
 		}
 
 		tr:hover {
@@ -112,10 +119,14 @@ htmlHeader = """
 		a {
 			color: #0e7cd4;
 			text-decoration: none;
+			position: relative;
+  			left: 0;
+  			transition: left 0.2s ease-in-out;
 		}
 
 		a:hover {
-			text-decoration: underline;
+			left: 5px;
+			color: #ff6e42;
 		}
 
 		li {
