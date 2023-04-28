@@ -1,5 +1,4 @@
 htmlHeader = """
-
 <!DOCTYPE html>
 <html>
 
@@ -10,7 +9,7 @@ htmlHeader = """
 	<script type="text/javascript">
 		window.onload = function () {
 			var toc = document.getElementById("toc");
-			var headings = document.getElementsByTagName("h2");
+			var headings = document.getElementsByTagName("h4");
 			var headingArray = [];
 
 			for (var i = 0; i < headings.length; i++) {
@@ -64,22 +63,29 @@ htmlHeader = """
 	</script>
 	<style>
 		body {
-			font-family: Arial, sans-serif;
+			font-family: 'Inter';
 			background-color: #f0f0f0;
 			margin-left: 20px;
 			line-height: 1.5;
 		}
 
 		h2,
-		h3 {
+		h3,
+  		h4{
+			font-family: 'Roobert';
 			margin-top: 30px;
 			margin-bottom: 15px;
 			margin-left: 20px;
 			color: #000041;
 		}
 
+		h4 {
+			font-size: 15px;
+		}
+
 		table {
 			border-collapse: collapse;
+			margin: auto;
 			margin-top: 10px;
 			margin-bottom: 30px;
 			background-color: white;
@@ -94,6 +100,7 @@ htmlHeader = """
 		table:hover {
 			transform: scale(1.04);
 		}
+
 		th,
 		td {
 			padding: 10px;
@@ -112,16 +119,16 @@ htmlHeader = """
 		}
 
 		tr:hover {
-			background-color: #f5f5f5;
+			background-color: #faf2f0;
 			cursor: pointer;
 		}
 
 		a {
-			color: #0e7cd4;
+			color: #3A2B82;
 			text-decoration: none;
 			position: relative;
-  			left: 0;
-  			transition: left 0.2s ease-in-out;
+			left: 0;
+			transition: left 0.2s ease-in-out;
 		}
 
 		a:hover {
@@ -148,6 +155,7 @@ htmlHeader = """
 		}
 	</style>
 </head>
+<h3> Table Of Contents</h3>
 <div id="toc">
 </div>
 """   # Thanks bing for beautifying the HTML report https://tinyurl.com/2l3hskkl :)

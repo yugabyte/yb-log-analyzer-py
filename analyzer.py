@@ -187,7 +187,7 @@ def analyzeLogFiles(logFile, outputFile, start_time=None, end_time=None):
         writeLock = True
         if args.html:
                 formatLogFileForHTMLId = logFile.replace("/", "-").replace(".", "-").replace(" ", "-").replace(":", "-")
-                open(outputFile, "a").write("<h2 id=" + formatLogFileForHTMLId + ">" + logFile + "</h2>")
+                open(outputFile, "a").write("<h4 id=" + formatLogFileForHTMLId + ">" + logFile + "</h4>")
                 content = tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence"], tablefmt="html")
                 content = content.replace("$line-break$", "<br>").replace("$tab$", "&nbsp;&nbsp;&nbsp;&nbsp;").replace("$start-code$", "<code>").replace("$end-code$", "</code>").replace("$start-bold$", "<b>").replace("$end-bold$", "</b>").replace("$start-italic$", "<i>").replace("$end-italic$", "</i>").replace("<table>", "<table class='sortable' id='main-table'>")
                 open(outputFile, "a").write(content)
