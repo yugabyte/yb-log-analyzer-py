@@ -4,12 +4,13 @@ htmlHeader = """
 
 <head>
 	<script src="https://www.kryogenix.org/code/browser/sorttable/sorttable.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.js"></script>
 	<meta charset="utf-8">
 	<title>Log Analysis Results</title>
 	<script type="text/javascript">
 		window.onload = function () {
 			var toc = document.getElementById("toc");
-			var headings = document.getElementsByTagName("h4");
+			var headings = document.getElementsByTagName("h4", "h3", "h2");
 			var headingArray = [];
 
 			for (var i = 0; i < headings.length; i++) {
@@ -153,9 +154,107 @@ htmlHeader = """
 			background-color: #f0f0f0;
 			margin-left: 25px;
 		}
+		.chart-container {
+            max-width: auto;
+            margin: 20px auto;
+            overflow-x: auto;
+        }
+
+  		canvas {
+            max-width: auto;
+            max-height: 400px; /* Update the height as desired */
+            margin: 20px auto;
+            display: block;
+        }
 	</style>
 </head>
-<h3> Table Of Contents</h3>
+<canvas id="myChart"></canvas>
+<h3> Logs with issues found </h3>
 <div id="toc">
 </div>
 """   # Thanks bing for beautifying the HTML report https://tinyurl.com/2l3hskkl :)
+
+barChart1= """
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var data ="""
+
+barChart2 = """
+            var categories = Object.keys(data);
+            var allHours = Object.values(data).flatMap(Object.keys);
+            var hours = [...new Set(allHours)].sort();
+
+            var chartData = hours.map(function(hour) {
+                var dataPoints = {};
+                categories.forEach(function(category) {
+                    dataPoints[category] = data[category][hour] || 0;
+                });
+                return {
+                    hour: hour,
+                    dataPoints: dataPoints
+                };
+            });
+
+            var datasets = categories.map(function(category, index) {
+                var backgroundColor = `rgba(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255}, 0.6)`;
+                var hoverBackgroundColor = `rgba(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255}, 1)`;
+                return {
+                    label: category,
+                    backgroundColor: backgroundColor,
+                    hoverBackgroundColor: hoverBackgroundColor,
+                    data: chartData.map(function(d) { return d.dataPoints[category]; })
+                };
+            });
+
+            var ctx = document.getElementById("myChart").getContext("2d");
+            var myChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: hours,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        xAxes: [{
+                            scaleLabel: {
+                                display: true,
+                                labelString: 'Time'
+                            }
+                        }],
+                        yAxes: [{
+                            scaleLabel: {
+                                display: true,
+                                labelString: 'Number of Events'
+                            },
+                            ticks: {
+                                beginAtZero: true,
+                                precision: 0
+                            }
+                        }]
+                    },
+                    hover: {
+                        onHover: function(e, elements) {
+                            if (elements && elements.length) {
+                                var index = elements[0]._index;
+                                var datasetIndex = elements[0]._datasetIndex;
+                                var meta = myChart.getDatasetMeta(datasetIndex);
+                                meta.data.forEach(function(bar, i) {
+                                    if (i === index) {
+                                        bar._model.backgroundColor = datasets[datasetIndex].hoverBackgroundColor;
+                                        bar._model.borderColor = datasets[datasetIndex].hoverBackgroundColor;
+                                    } else {
+                                        bar._model.backgroundColor = datasets[datasetIndex].backgroundColor;
+                                        bar._model.borderColor = datasets[datasetIndex].backgroundColor;
+                                    }
+                                });
+                                myChart.update();
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+"""
