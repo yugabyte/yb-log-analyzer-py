@@ -59,9 +59,7 @@ listOfAllFilesWithNoErrors = []
 barChartJSON = {}
 writeLock = False
 
-
 # Setup a logger
-
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 console_handler = logging.StreamHandler()
@@ -259,23 +257,32 @@ if __name__ == "__main__":
         listOfErrorsInAllFiles = list(set(listOfErrorsInAllFiles + listOfErrorsInFile))
         listOfAllFilesWithNoErrors = list(set(listOfAllFilesWithNoErrors + listOfFilesWithNoErrors))
     
-    # Write bar chart
-    open(outputFile, "a").write("<h2 id=bar-chart> Histogram </h2>")    
-    open(outputFile, "a").write(barChart1 + json.dumps(barChartJSON) + barChart2)
-    # Write troubleshooting tips
-
     if listOfErrorsInAllFiles:
-        
-        open(outputFile, "a").write("<h2 id=troubleshooting-tips> Troubleshooting Tips </h2>")
-        for error in listOfErrorsInAllFiles:
-            solution = getSolution(error)
-            formatErrorForHTMLId = error.replace(" ", "-").lower()
-            open(outputFile, "a").write("<h3 id=" + formatErrorForHTMLId + ">" + error + " </h3>")
-            content = solution.replace("$line-break$", "<br>").replace("$tab$", "&nbsp;&nbsp;&nbsp;&nbsp;").replace("$start-code$", "<code>").replace("$end-code$", "</code>")
-            content = content.replace("$start-bold$", "<b>").replace("$end-bold$", "</b>").replace("$start-italic$", "<i>").replace("$end-italic$", "</i>")
-            content = content.replace("$start-link$", "<a href='").replace("$end-link$", "' target='_blank'>").replace("$end-link-text$", "</a>")
-            open(outputFile, "a").write( "<p>" + content + " </p>")
-            open(outputFile, "a").write("<hr>")
+        if args.html:
+            # Write bar chart
+            open(outputFile, "a").write(barChart1 + json.dumps(barChartJSON) + barChart2)
+            # Write troubleshooting tips
+            open(outputFile, "a").write("<h2 id=troubleshooting-tips> Troubleshooting Tips </h2>")
+            for error in listOfErrorsInAllFiles:
+                solution = getSolution(error)
+                formatErrorForHTMLId = error.replace(" ", "-").lower()
+                open(outputFile, "a").write("<h3 id=" + formatErrorForHTMLId + ">" + error + " </h3>")
+                content = solution.replace("$line-break$", "<br>").replace("$tab$", "&nbsp;&nbsp;&nbsp;&nbsp;").replace("$start-code$", "<code>").replace("$end-code$", "</code>")
+                content = content.replace("$start-bold$", "<b>").replace("$end-bold$", "</b>").replace("$start-italic$", "<i>").replace("$end-italic$", "</i>")
+                content = content.replace("$start-link$", "<a href='").replace("$end-link$", "' target='_blank'>").replace("$end-link-text$", "</a>")
+                open(outputFile, "a").write( "<p>" + content + " </p>")
+                open(outputFile, "a").write("<hr>")
+        else:
+            # Write troubleshooting tips
+            open(outputFile, "a").write("\n\n\nTroubleshooting Tips\n\n")
+            for error in listOfErrorsInAllFiles:
+                solution = getSolution(error)
+                open(outputFile, "a").write("### " + error + "\n\n")
+                content = solution.replace("$line-break$", "\n").replace("$tab$", "\t").replace("$start-code$", "`").replace("$end-code$", "`")
+                content = content.replace("$start-bold$", "**").replace("$end-bold$", "**").replace("$start-italic$", "*").replace("$end-italic$", "*")
+                content = content.replace("$start-link$", "").replace("$end-link$", "").replace("$end-link-text$", "")
+                open(outputFile, "a").write(content + "\n\n")
+
     logger.info("Analysis complete. Results are in " + outputFile)
     
     # Write list of files with no errors
@@ -288,9 +295,12 @@ if __name__ == "__main__":
             for file in listOfAllFilesWithNoErrors:
                 open(outputFile, "a").write("<li>" + file + "</li>")
             open(outputFile, "a").write("</ul>")
+
         else:
             askForHelp = """\n\n Below list of files do not have any issues to report! If you do find something out of the ordinary in them, create a Github issue at:
             https://github.com/yugabyte/yb-log-analyzer-py/issues/new?assignees=pgyogesh&labels=%23newmessage&template=add-new-message.md&title=%5BNew+Message%5D\n\n"""
             open(outputFile, "a").write(askForHelp)
             for file in listOfAllFilesWithNoErrors:
                 open(outputFile, "a").write('- ' + file + "\n")
+    if args.html:
+        open(outputFile, "a").write(htmlFooter)

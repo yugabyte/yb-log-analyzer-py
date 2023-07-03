@@ -258,3 +258,6 @@ barChart2 = """
         });
     </script>
 """
+htmlFooter = """
+Credits: <a href='https://www.kryogenix.org/code/browser/sorttable/sorttable.js'> sorttable.js </a> and <a href='https://www.chartjs.org/'> Chart.js </a>
+"""

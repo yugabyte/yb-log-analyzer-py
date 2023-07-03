@@ -33,7 +33,7 @@ regex_patterns = {
     "SST files limit exceeded": r"SST files limit exceeded",
     "Operation memory consumption has exceeded its limit": r"Operation failed.*operation memory consumption.*has exceeded",
     "Too big clock skew is detected":r"Too big clock skew is detected",
-    "Stopping writes because we have immutable memtables":r"Stopping writes because we have \d immutable memtables"
+    "Stopping writes because we have immutable memtables":r"Stopping writes because we have \d+ immutable memtables"
     # Add more log messages here
 }
 solutions = {
