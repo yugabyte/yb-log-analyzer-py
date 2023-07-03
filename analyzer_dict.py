@@ -32,7 +32,8 @@ regex_patterns = {
     "Long wait for safe op id": r"Long wait for safe op id",
     "SST files limit exceeded": r"SST files limit exceeded",
     "Operation memory consumption has exceeded its limit": r"Operation failed.*operation memory consumption.*has exceeded",
-    "Too big clock skew is detected":r"Too big clock skew is detected"
+    "Too big clock skew is detected":r"Too big clock skew is detected",
+    "Stopping writes because we have 2 immutable memtables":r"Stopping writes because we have 2 immutable memtables"
     # Add more log messages here
 }
 solutions = {
@@ -60,7 +61,10 @@ solutions = {
         """,
     "Too big clock skew is detected": """
         This error indicates the nodes running tserver/master process are having clock skew outside of an acceptable range. Clock skew and clock drift can lead to significant consistency issues and should be fixed as soon as possible.$line-break$
-        $start-bold$ KB Article$end-bold$: $start-link$ https://support.yugabyte.com/hc/en-us/articles/4403707404173-Too-big-clock-skew-leading-to-error-messages-or-tserver-crashes $end-link$ Too big clock skew leading to error messages or tserver crashes $end-link-text$
+        $start-bold$ KB Article$end-bold$: $start-link$ https://support.yugabyte.com/hc/en-us/articles/4403707404173-Too-big-clock-skew-leading-to-error-messages-or-tserver-crashes $end-link$ Too big clock skew leading to error messages or tserver crashes $end-link-text$ """,
+    "Stopping writes because we have 2 immutable memtables":"""
+        This message is generally observed when a tablet has 2 immutable memtables whcih need to flush to disk. It generally indicates that application is writing at rate, and YB is not able to write the data to disk at same speed, as disk may be slow.$line-break$
+        $start-bold$ KB Article$end-bold$: $start-link$ https://support.yugabyte.com/hc/en-us/articles/14950181387277-Stopping-writes-because-we-have-2-immutable-memtables-waiting-for-flush- $end-link$ Stopping writes because we have 2 immutable memtables (waiting for flush) $end-link-text$ 
     """
     # Add more solutions here
 }
