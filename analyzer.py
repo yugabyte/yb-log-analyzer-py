@@ -12,6 +12,7 @@ import os
 import tabulate
 import tarfile
 import gzip
+import json
 
 
 # Command line arguments
@@ -55,7 +56,9 @@ listOfErrorsInAllFiles = []
 listOfErrorsInFile = []
 listOfFilesWithNoErrors = []
 listOfAllFilesWithNoErrors = []
+barChartJSON = {}
 writeLock = False
+
 
 # Setup a logger
 
@@ -137,6 +140,7 @@ def analyzeLogFiles(logFile, outputFile, start_time=None, end_time=None):
     previousTime = '0101 00:00' # Default time
     logger.info("Analyzing file {}".format(logFile))
     global writeLock
+    global barChartJSON
     if logFile.endswith(".gz"):
         logs = gzip.open(logFile, "rt")
     else:
@@ -164,7 +168,12 @@ def analyzeLogFiles(logFile, outputFile, start_time=None, end_time=None):
                     results[message]["firstOccurrenceTime"] = time                                                                               # set it 
                 results[message]["lastOccurrenceTime"] = time                                                                                # Set time as last occurrence time
                 listOfErrorsInFile.append(message)
-
+                
+                # Create JSON for bar chart
+                hour = time[:-3]
+                barChartJSON.setdefault(message, {})
+                barChartJSON[message].setdefault(hour, 0)
+                barChartJSON[message][hour] += 1                
     if args.sort_by == 'NO':
         sortedDict = OrderedDict(sorted(results.items(), key=lambda x: x[1]["numOccurrences"], reverse=True))
     elif args.sort_by == 'LO':
@@ -201,7 +210,7 @@ def analyzeLogFiles(logFile, outputFile, start_time=None, end_time=None):
         listOfFilesWithNoErrors.append(logFile)
     logs.close()
     logger.info("Finished analyzing file {}".format(logFile))
-    return listOfErrorsInFile, listOfFilesWithNoErrors
+    return listOfErrorsInFile, listOfFilesWithNoErrors, barChartJSON
         
 
 def get_histogram(logFile):
@@ -216,11 +225,11 @@ def getSolution(message):
     return solutions[message]
     
 if __name__ == "__main__":
-    
     # Create output file
     if args.html:
         outputFile = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "_analysis.html"
         open(outputFile, "a").write(htmlHeader)
+        open(outputFile)
     else:
         outputFile = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "_analysis.txt"
     
@@ -245,13 +254,18 @@ if __name__ == "__main__":
     
     # Analyze log files
     pool = Pool(processes=args.numThreads)
-    for listOfErrorsInFile, listOfFilesWithNoErrors in pool.starmap(analyzeLogFiles, [(file, outputFile, start_time, end_time) for file in logFileList]):
+    for listOfErrorsInFile, listOfFilesWithNoErrors, barChartJSON in pool.starmap(analyzeLogFiles, [(file, outputFile, start_time, end_time) for file in logFileList]):
         # Append list of errors in each file to the list of errors in all files without duplicates
         listOfErrorsInAllFiles = list(set(listOfErrorsInAllFiles + listOfErrorsInFile))
         listOfAllFilesWithNoErrors = list(set(listOfAllFilesWithNoErrors + listOfFilesWithNoErrors))
     
+    # Write bar chart
+    open(outputFile, "a").write("<h2 id=bar-chart> Histogram </h2>")    
+    open(outputFile, "a").write(barChart1 + json.dumps(barChartJSON) + barChart2)
     # Write troubleshooting tips
+
     if listOfErrorsInAllFiles:
+        
         open(outputFile, "a").write("<h2 id=troubleshooting-tips> Troubleshooting Tips </h2>")
         for error in listOfErrorsInAllFiles:
             solution = getSolution(error)
@@ -279,5 +293,4 @@ if __name__ == "__main__":
             https://github.com/yugabyte/yb-log-analyzer-py/issues/new?assignees=pgyogesh&labels=%23newmessage&template=add-new-message.md&title=%5BNew+Message%5D\n\n"""
             open(outputFile, "a").write(askForHelp)
             for file in listOfAllFilesWithNoErrors:
-                open(outputFile, "a").write('- ' + file + "\n")    
-    
+                open(outputFile, "a").write('- ' + file + "\n")
