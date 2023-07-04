@@ -33,7 +33,8 @@ regex_patterns = {
     "SST files limit exceeded": r"SST files limit exceeded",
     "Operation memory consumption has exceeded its limit": r"Operation failed.*operation memory consumption.*has exceeded",
     "Too big clock skew is detected":r"Too big clock skew is detected",
-    "Stopping writes because we have immutable memtables":r"Stopping writes because we have \d+ immutable memtables"
+    "Stopping writes because we have immutable memtables":r"Stopping writes because we have \d+ immutable memtables",
+    "UpdateConsensus requests dropped due to backpressure":r"UpdateConsensus request.*dropped due to backpressure"
     # Add more log messages here
 }
 solutions = {
@@ -65,6 +66,10 @@ solutions = {
     "Stopping writes because we have immutable memtables":"""
         This message is generally observed when a tablet has immutable memtables whcih need to flush to disk. It generally indicates that application is writing at rate, and YB is not able to write the data to disk at same speed, as disk may be slow.$line-break$
         $start-bold$ KB Article$end-bold$: $start-link$ https://support.yugabyte.com/hc/en-us/articles/14950181387277-Stopping-writes-because-we-have-2-immutable-memtables-waiting-for-flush- $end-link$ Stopping writes because we have immutable memtables (waiting for flush) $end-link-text$ 
+    """,
+    "UpdateConsensus requests dropped due to backpressure":"""
+        This message is generally observed when a tablet server is overloaded with UpdateConsensus requests and is not able to process the requests at the same rate as they are coming. This could also happen when there are huge number tablets created on tablet server. $line-break$
+        $start-bold$ KB Article$end-bold$: $start-link$ https://support.yugabyte.com/hc/en-us/articles/4404157217037-Coordinator-node-overloaded-rejecting-connection $end-link$ Coordinator node overloaded rejecting connection $end-link-text$
     """
     # Add more solutions here
 }

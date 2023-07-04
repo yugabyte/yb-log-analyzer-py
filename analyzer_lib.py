@@ -161,14 +161,15 @@ htmlHeader = """
         }
 
   		canvas {
-            max-width: auto;
-            max-height: 400px; /* Update the height as desired */
-            margin: 20px auto;
-            display: block;
+            height: 400px; /* Update the height as desired */
         }
 	</style>
 </head>
-<canvas id="myChart"></canvas>
+<div class="chart-container">
+	<div class="chart-area">
+		<canvas id="myChart"></canvas>
+	</div>
+</div>
 <h3> Logs with issues found </h3>
 <div id="toc">
 </div>
@@ -234,6 +235,18 @@ barChart2 = """
                             }
                         }]
                     },
+					legend: {
+						display: true,
+						position: 'left',
+						labels: {
+							boxWidth: 20,
+							fontSize: 10,
+							padding: 10
+						},
+						onHover: function(e) {
+							e.target.style.cursor = 'pointer';
+						},
+					},
                     hover: {
                         onHover: function(e, elements) {
                             if (elements && elements.length) {
@@ -255,6 +268,10 @@ barChart2 = """
                     }
                 }
             });
+			if (hours.length >= 25) {
+				var chartArea = document.querySelector('.chart-area');
+            	chartArea.style.width = (hours.length * 50) + 'px';
+			}
         });
     </script>
 """
