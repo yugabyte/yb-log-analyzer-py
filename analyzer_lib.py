@@ -197,8 +197,11 @@ barChart2 = """
             });
 
             var datasets = categories.map(function(category, index) {
-                var backgroundColor = `rgba(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255}, 0.6)`;
-                var hoverBackgroundColor = `rgba(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255}, 1)`;
+                var randomRed = Math.random() * 255;
+                var randomGreen = Math.random() * 255;
+                var randomBlue = Math.random() * 255;
+                var backgroundColor = `rgba(${randomRed}, ${randomGreen}, ${randomBlue}, 0.6)`;
+                var hoverBackgroundColor = `rgba(${randomRed}, ${randomGreen}, ${randomBlue}, 0.8)`;
                 return {
                     label: category,
                     backgroundColor: backgroundColor,
