@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from multiprocessing import Pool
+from multiprocessing import Pool, Lock
 from analyzer_dict import regex_patterns, solutions
 from analyzer_lib import *
 from histogram import *
@@ -56,8 +56,11 @@ listOfErrorsInAllFiles = []
 listOfErrorsInFile = []
 listOfFilesWithNoErrors = []
 listOfAllFilesWithNoErrors = []
-barChartJSON = {}
-writeLock = False
+
+# Define Barchart varz
+histogramJSON = {}
+barChartJSONLock = Lock()
+writeLock = Lock()
 
 # Setup a logger
 logger = logging.getLogger(__name__)
@@ -138,7 +141,6 @@ def analyzeLogFiles(logFile, outputFile, start_time=None, end_time=None):
     previousTime = '0101 00:00' # Default time
     logger.info("Analyzing file {}".format(logFile))
     global writeLock
-    global barChartJSON
     if logFile.endswith(".gz"):
         logs = gzip.open(logFile, "rt")
     else:
@@ -149,6 +151,7 @@ def analyzeLogFiles(logFile, outputFile, start_time=None, end_time=None):
         logger.warning("Skipping file {} as it is not a text file".format(logFile))
         return listOfErrorsInFile, listOfFilesWithNoErrors
     results = {}                                                                                                                      # Dictionary to store the results
+    barChartJSON = {}
     for line in lines:                                                                                                                # For each line in the log file
         timeFromLog = getTimeFromLog(line,previousTime)        
         for message, pattern in regex_patterns.items():                                                                                     # For each message and pattern
@@ -171,7 +174,8 @@ def analyzeLogFiles(logFile, outputFile, start_time=None, end_time=None):
                 hour = time[:-3]
                 barChartJSON.setdefault(message, {})
                 barChartJSON[message].setdefault(hour, 0)
-                barChartJSON[message][hour] += 1                
+                barChartJSON[message][hour] += 1
+                                    
     if args.sort_by == 'NO':
         sortedDict = OrderedDict(sorted(results.items(), key=lambda x: x[1]["numOccurrences"], reverse=True))
     elif args.sort_by == 'LO':
@@ -189,21 +193,18 @@ def analyzeLogFiles(logFile, outputFile, start_time=None, end_time=None):
             ]
         )
     if table:
-        while writeLock:
-            time.sleep(1)
-        writeLock = True
-        if args.html:
-                formatLogFileForHTMLId = logFile.replace("/", "-").replace(".", "-").replace(" ", "-").replace(":", "-")
-                open(outputFile, "a").write("<h4 id=" + formatLogFileForHTMLId + ">" + logFile + "</h4>")
-                content = tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence"], tablefmt="html")
-                content = content.replace("$line-break$", "<br>").replace("$tab$", "&nbsp;&nbsp;&nbsp;&nbsp;").replace("$start-code$", "<code>").replace("$end-code$", "</code>").replace("$start-bold$", "<b>").replace("$end-bold$", "</b>").replace("$start-italic$", "<i>").replace("$end-italic$", "</i>").replace("<table>", "<table class='sortable' id='main-table'>")
-                open(outputFile, "a").write(content)
-        else:
-                open(outputFile, "a").write("\n\n\nAnalysis of " + logFile + "\n\n")
-                content = tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence"], tablefmt="simple_grid")
-                content = content.replace("$line-break$", "\n").replace("$tab$", "\t").replace("$start-code$", "`").replace("$end-code$", "`").replace("$start-bold$", "**").replace("$end-bold$", "**").replace("$start-italic$", "*").replace("$end-italic$", "*")
-                open(outputFile, "a").write(content)
-        writeLock = False
+        with writeLock:
+            if args.html:
+                    formatLogFileForHTMLId = logFile.replace("/", "-").replace(".", "-").replace(" ", "-").replace(":", "-")
+                    open(outputFile, "a").write("<h4 id=" + formatLogFileForHTMLId + ">" + logFile + "</h4>")
+                    content = tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence"], tablefmt="html")
+                    content = content.replace("$line-break$", "<br>").replace("$tab$", "&nbsp;&nbsp;&nbsp;&nbsp;").replace("$start-code$", "<code>").replace("$end-code$", "</code>").replace("$start-bold$", "<b>").replace("$end-bold$", "</b>").replace("$start-italic$", "<i>").replace("$end-italic$", "</i>").replace("<table>", "<table class='sortable' id='main-table'>")
+                    open(outputFile, "a").write(content)
+            else:
+                    open(outputFile, "a").write("\n\n\nAnalysis of " + logFile + "\n\n")
+                    content = tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence"], tablefmt="simple_grid")
+                    content = content.replace("$line-break$", "\n").replace("$tab$", "\t").replace("$start-code$", "`").replace("$end-code$", "`").replace("$start-bold$", "**").replace("$end-bold$", "**").replace("$start-italic$", "*").replace("$end-italic$", "*")
+                    open(outputFile, "a").write(content)
     else:
         listOfFilesWithNoErrors.append(logFile)
     logs.close()
@@ -249,18 +250,27 @@ if __name__ == "__main__":
         logger.warning("No log files found")
         exit(1)
     
-    
+    logger.info("Number of files to analyze:" + str(len(logFileList)))
     # Analyze log files
     pool = Pool(processes=args.numThreads)
     for listOfErrorsInFile, listOfFilesWithNoErrors, barChartJSON in pool.starmap(analyzeLogFiles, [(file, outputFile, start_time, end_time) for file in logFileList]):
         # Append list of errors in each file to the list of errors in all files without duplicates
         listOfErrorsInAllFiles = list(set(listOfErrorsInAllFiles + listOfErrorsInFile))
         listOfAllFilesWithNoErrors = list(set(listOfAllFilesWithNoErrors + listOfFilesWithNoErrors))
+        for key, value in barChartJSON.items():
+            if key in histogramJSON:
+                for subkey, subvalue in value.items():
+                    if subkey in histogramJSON[key]:
+                        histogramJSON[key][subkey] += subvalue
+                    else:
+                        histogramJSON[key][subkey] = subvalue
+            else:
+                histogramJSON[key] = value
     
     if listOfErrorsInAllFiles:
         if args.html:
             # Write bar chart
-            open(outputFile, "a").write(barChart1 + json.dumps(barChartJSON) + barChart2)
+            open(outputFile, "a").write(barChart1 + json.dumps(histogramJSON) + barChart2)
             # Write troubleshooting tips
             open(outputFile, "a").write("<h2 id=troubleshooting-tips> Troubleshooting Tips </h2>")
             for error in listOfErrorsInAllFiles:
