@@ -3,8 +3,10 @@ htmlHeader = """
 <html>
 
 <head>
-	<script src="https://www.kryogenix.org/code/browser/sorttable/sorttable.js"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.js"></script>
+    <script src="https://www.kryogenix.org/code/browser/sorttable/sorttable.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1"></script>
 	<meta charset="utf-8">
 	<title>Log Analysis Results</title>
 	<script type="text/javascript">
@@ -211,72 +213,86 @@ barChart2 = """
             });
 
             var ctx = document.getElementById("myChart").getContext("2d");
-            var myChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: hours,
-                    datasets: datasets
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        xAxes: [{
-                            scaleLabel: {
-                                display: true,
-                                labelString: 'Time'
-                            }
-                        }],
-                        yAxes: [{
-                            scaleLabel: {
-                                display: true,
-                                labelString: 'Number of Events'
-                            },
-                            ticks: {
-                                beginAtZero: true,
-                                precision: 0
-                            }
-                        }]
+    var myChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: hours,
+            datasets: datasets
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                xAxes: [{
+                    scaleLabel: {
+                        display: true,
+                        labelString: 'Time'
+                    }
+                }],
+                yAxes: [{
+                    scaleLabel: {
+                        display: true,
+                        labelString: 'Number of Events'
                     },
-					legend: {
-						display: true,
-						position: 'left',
-						labels: {
-							boxWidth: 20,
-							fontSize: 10,
-							padding: 10
-						},
-						onHover: function(e) {
-							e.target.style.cursor = 'pointer';
-						},
-					},
-                    hover: {
-                        onHover: function(e, elements) {
-                            if (elements && elements.length) {
-                                var index = elements[0]._index;
-                                var datasetIndex = elements[0]._datasetIndex;
-                                var meta = myChart.getDatasetMeta(datasetIndex);
-                                meta.data.forEach(function(bar, i) {
-                                    if (i === index) {
-                                        bar._model.backgroundColor = datasets[datasetIndex].hoverBackgroundColor;
-                                        bar._model.borderColor = datasets[datasetIndex].hoverBackgroundColor;
-                                    } else {
-                                        bar._model.backgroundColor = datasets[datasetIndex].backgroundColor;
-                                        bar._model.borderColor = datasets[datasetIndex].backgroundColor;
-                                    }
-                                });
-                                myChart.update();
+                    ticks: {
+                        beginAtZero: true,
+                        precision: 0
+                    }
+                }]
+            },
+            hover: {
+                onHover: function(e, elements) {
+                    if (elements && elements.length) {
+                        var index = elements[0]._index;
+                        var datasetIndex = elements[0]._datasetIndex;
+                        var meta = myChart.getDatasetMeta(datasetIndex);
+                        meta.data.forEach(function(bar, i) {
+                            if (i === index) {
+                                bar._model.backgroundColor = datasets[datasetIndex].hoverBackgroundColor;
+                                bar._model.borderColor = datasets[datasetIndex].hoverBackgroundColor;
+                            } else {
+                                bar._model.backgroundColor = datasets[datasetIndex].backgroundColor;
+                                bar._model.borderColor = datasets[datasetIndex].backgroundColor;
                             }
-                        }
+                        });
+                        myChart.update();
                     }
                 }
-            });
-			if (hours.length >= 25) {
-				var chartArea = document.querySelector('.chart-area');
-            	chartArea.style.width = (hours.length * 50) + 'px';
-			}
-        });
-    </script>
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    maxWidth: 500,
+                    onHover: function(e) {
+                        e.target.style.cursor = 'pointer';
+                    },
+                },
+                zoom: {
+                    zoom: {
+                        drag: {
+                            enabled: true,
+                        },
+                        mode: 'x',
+                        speed: 0.05,
+                    },
+                    pan: {
+                        enabled: true,
+                        mode: 'x',
+                        speed: 20,
+                    }
+                }
+            }
+        },
+    });
+
+    var chartContainer = document.querySelector('.chart-container');
+    var chartArea = document.querySelector('.chart-area');
+    
+    chartContainer.addEventListener('dblclick', function () {
+        myChart.resetZoom();
+    });
+});
 """
 htmlFooter = """
 Credits: <a href='https://www.kryogenix.org/code/browser/sorttable/sorttable.js'> sorttable.js </a> and <a href='https://www.chartjs.org/'> Chart.js </a>
