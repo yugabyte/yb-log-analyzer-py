@@ -16,7 +16,6 @@ import json
 
 
 # Command line arguments
-
 parser = argparse.ArgumentParser(description="Log Analyzer for YugabyteDB logs")
 parser.add_argument("-l", "--log_files", nargs='+', help="List of log file[s]")
 parser.add_argument("-d", "--directory", help="Directory containing log files")
@@ -33,7 +32,6 @@ parser.add_argument("--html", action="store_true", help="Generate HTML report")
 args = parser.parse_args()
 
 # Validated start and end time format
-
 if args.start_time:
     try:
         datetime.datetime.strptime(args.start_time, "%m%d %H:%M")
@@ -60,6 +58,8 @@ listOfAllFilesWithNoErrors = []
 # Define Barchart varz
 histogramJSON = {}
 barChartJSONLock = Lock()
+
+# Define lock for writing to file
 writeLock = Lock()
 
 # Setup a logger
@@ -146,36 +146,36 @@ def analyzeLogFiles(logFile, outputFile, start_time=None, end_time=None):
     else:
         logs = open(logFile, "r")
     try:
-        lines = logs.readlines()                                                                                                             # Read all the lines in the log file
+        lines = logs.readlines()
     except UnicodeDecodeError as e:
         logger.warning("Skipping file {} as it is not a text file".format(logFile))
         return listOfErrorsInFile, listOfFilesWithNoErrors
-    results = {}                                                                                                                      # Dictionary to store the results
+    results = {}
     barChartJSON = {}
-    for line in lines:                                                                                                                # For each line in the log file
-        timeFromLog = getTimeFromLog(line,previousTime)        
-        for message, pattern in regex_patterns.items():                                                                                     # For each message and pattern
-            match = re.search(pattern, line)                                                                                                # Search for the pattern in the line
-            if match and (not start_time or timeFromLog >= start_time) and (not end_time or timeFromLog <= end_time):     # If the pattern is found in the line and the line is within the time range          
-                if message not in results:                                                                                                     # If the message is not in the results dictionary, add it
-                    results[message] = {                                                                                                           # Initialize the dictionary for the message
-                        "numOccurrences": 0,                                                                                                          # Number of occurrences of the message
-                        "firstOccurrenceTime": None,                                                                                                 # Time of the first occurrence of the message
-                        "lastOccurrenceTime": None,                                                                                                  # Time of the last occurrence of the message
-                    }                                                                                                                              # End of dictionary for the message            
-                results[message]["numOccurrences"] += 1                                                                                       # Increment the number of occurrences of the message
-                time = timeFromLog.strftime('%m%d %H:%M')                                                                            # Get the time from the log line
-                if not results[message]["firstOccurrenceTime"]:                                                                              # If the first occurrence time is not set
-                    results[message]["firstOccurrenceTime"] = time                                                                               # set it 
-                results[message]["lastOccurrenceTime"] = time                                                                                # Set time as last occurrence time
+    for line in lines:
+        timeFromLog = getTimeFromLog(line,previousTime)
+        for message, pattern in regex_patterns.items():
+            match = re.search(pattern, line)
+            if match and (not start_time or timeFromLog >= start_time) and (not end_time or timeFromLog <= end_time):
+                # Populate results
+                if message not in results:
+                    results[message] = {
+                        "numOccurrences": 0,
+                        "firstOccurrenceTime": None,
+                        "lastOccurrenceTime": None,
+                    }
+                results[message]["numOccurrences"] += 1
+                time = timeFromLog.strftime('%m%d %H:%M')
+                if not results[message]["firstOccurrenceTime"]:
+                    results[message]["firstOccurrenceTime"] = time
+                results[message]["lastOccurrenceTime"] = time
                 listOfErrorsInFile.append(message)
                 
                 # Create JSON for bar chart
                 hour = time[:-3]
                 barChartJSON.setdefault(message, {})
                 barChartJSON[message].setdefault(hour, 0)
-                barChartJSON[message][hour] += 1
-                                    
+                barChartJSON[message][hour] += 1                              
     if args.sort_by == 'NO':
         sortedDict = OrderedDict(sorted(results.items(), key=lambda x: x[1]["numOccurrences"], reverse=True))
     elif args.sort_by == 'LO':
@@ -251,10 +251,10 @@ if __name__ == "__main__":
         exit(1)
     
     logger.info("Number of files to analyze:" + str(len(logFileList)))
+    
     # Analyze log files
     pool = Pool(processes=args.numThreads)
     for listOfErrorsInFile, listOfFilesWithNoErrors, barChartJSON in pool.starmap(analyzeLogFiles, [(file, outputFile, start_time, end_time) for file in logFileList]):
-        # Append list of errors in each file to the list of errors in all files without duplicates
         listOfErrorsInAllFiles = list(set(listOfErrorsInAllFiles + listOfErrorsInFile))
         listOfAllFilesWithNoErrors = list(set(listOfAllFilesWithNoErrors + listOfFilesWithNoErrors))
         for key, value in barChartJSON.items():
@@ -291,10 +291,7 @@ if __name__ == "__main__":
                 content = solution.replace("$line-break$", "\n").replace("$tab$", "\t").replace("$start-code$", "`").replace("$end-code$", "`")
                 content = content.replace("$start-bold$", "**").replace("$end-bold$", "**").replace("$start-italic$", "*").replace("$end-italic$", "*")
                 content = content.replace("$start-link$", "").replace("$end-link$", "").replace("$end-link-text$", "")
-                open(outputFile, "a").write(content + "\n\n")
-
-    logger.info("Analysis complete. Results are in " + outputFile)
-    
+                open(outputFile, "a").write(content + "\n\n")    
     # Write list of files with no errors
     if listOfAllFilesWithNoErrors:
         if args.html:
@@ -314,3 +311,4 @@ if __name__ == "__main__":
                 open(outputFile, "a").write('- ' + file + "\n")
     if args.html:
         open(outputFile, "a").write(htmlFooter)
+    logger.info("Analysis complete. Results are in " + outputFile)

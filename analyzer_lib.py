@@ -3,10 +3,10 @@ htmlHeader = """
 <html>
 
 <head>
-    <script src="https://www.kryogenix.org/code/browser/sorttable/sorttable.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0"></script>
-    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1"></script>
+	<script src="https://www.kryogenix.org/code/browser/sorttable/sorttable.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0"></script>
+	<script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
+	<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1"></script>
 	<meta charset="utf-8">
 	<title>Log Analysis Results</title>
 	<script type="text/javascript">
@@ -74,7 +74,7 @@ htmlHeader = """
 
 		h2,
 		h3,
-  		h4{
+		h4 {
 			font-family: 'Roobert';
 			margin-top: 30px;
 			margin-bottom: 15px;
@@ -156,16 +156,18 @@ htmlHeader = """
 			background-color: #f0f0f0;
 			margin-left: 25px;
 		}
-		.chart-container {
-            max-width: auto;
-            margin: 20px auto;
-            overflow-x: auto;
-            position: relative;
-        }
 
-  		canvas {
-            height: 400px; /* Update the height as desired */
-        }
+		.chart-container {
+			max-width: auto;
+			margin: 20px auto;
+			overflow-x: auto;
+			position: relative;
+		}
+
+		canvas {
+			height: 400px;
+			/* Update the height as desired */
+		}
 
 		.popup {
 			position: fixed;
@@ -183,59 +185,63 @@ htmlHeader = """
 			overflow: auto;
 		}
 
-        .help-message {
+		.help-message {
 			font-family: Arial, sans-serif;
-            line-height: 1.5;
+			line-height: 1.5;
 		}
 	</style>
 </head>
+
 <body>
-    <div id="helpPopup" class="popup">
+	<div id="helpPopup" class="popup">
 		<i>Welcome to the Log Analyzer Report Documentation!</i>
-        <br><br>	
+		<br><br>
 		<b> Chart Section </b>
 		<p>In the Chart section, you can analyze the log data using interactive charts.<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;- To zoom in on a specific area, click and drag the cursor to select the desired region.<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;- To reset the zoom level, simply double-click on the chart </p>
+			&nbsp;&nbsp;&nbsp;&nbsp;- To zoom in on a specific area, click and drag the cursor to select the desired region.<br>
+			&nbsp;&nbsp;&nbsp;&nbsp;- To reset the zoom level, simply double-click on the chart </p>
 		<b> Filtering </b>
 		<p> Filtering allows you to focus on specific data in the charts.<br>
-	        &nbsp;&nbsp;&nbsp;&nbsp;- To filter the data, click on the legends corresponding to the data series you want to view or hide.</p>
+			&nbsp;&nbsp;&nbsp;&nbsp;- To filter the data, click on the legends corresponding to the data series you want
+			to view or hide.</p>
 
 		<b>Logs with Issues Found</b>
 
 		<p>The Logs with Issues Found section provides detailed information about identified issues in the logs. <br>
-			&nbsp;&nbsp;&nbsp;&nbsp; - Click on a file to navigate directly to it and review the associated log entries.</p>
+			&nbsp;&nbsp;&nbsp;&nbsp; - Click on a file to navigate directly to it and review the associated log entries.
+		</p>
 
 		<b> Table Reports</b>
 		<p>The Table Reports section offers summarized views of the log data. <br>
 			&nbsp;&nbsp;&nbsp;&nbsp; - To sort the table, click on the column headers. You can sort by any column <br>
-            &nbsp;&nbsp;&nbsp;&nbsp; - To find solutions for errors, click on a row in the table to navigate to the corresponding solution.</p>		  
+			&nbsp;&nbsp;&nbsp;&nbsp; - To find solutions for errors, click on a row in the table to navigate to the
+			corresponding solution.</p>
 	</div>
- <script>
-	document.addEventListener("keydown", function (event) {
-		if (event.key === "?") {
-			document.getElementById("helpPopup").style.display = "block"
+	<script>
+		document.addEventListener("keydown", function (event) {
+			if (event.key === "?") {
+				document.getElementById("helpPopup").style.display = "block"
+			}
+		});
+		document.addEventListener("keydown", function (event) {
+			if (event.key === "Escape") {
+				document.getElementById("helpPopup").style.display = "none";
+			}
+		});
+		window.onclick = function (event) {
+			if (event.target != document.getElementById("helpPopup")) {
+				document.getElementById("helpPopup").style.display = "none";
+			}
 		}
-	});
-	document.addEventListener("keydown", function (event) {
-		if (event.key === "Escape") {
-			document.getElementById("helpPopup").style.display = "none";
-		}
-	});
-	window.onclick = function (event) {
-		if (event.target != document.getElementById("helpPopup")) {
-			document.getElementById("helpPopup").style.display = "none";
-		}
-	}
-</script>
-<div class="chart-container">
-	<div class="chart-area">
-		<canvas id="myChart"></canvas>
+	</script>
+	<div class="chart-container">
+		<div class="chart-area">
+			<canvas id="myChart"></canvas>
+		</div>
 	</div>
-</div>
-<h3> Logs with issues found </h3>
-<div id="toc">
-</div>
+	<h3> Logs with issues found </h3>
+	<div id="toc">
+	</div>
 """   # Thanks bing for beautifying the HTML report https://tinyurl.com/2l3hskkl :)
 
 barChart1= """
