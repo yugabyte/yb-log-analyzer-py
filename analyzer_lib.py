@@ -4,7 +4,9 @@ htmlHeader = """
 
 <head>
 	<script src="https://www.kryogenix.org/code/browser/sorttable/sorttable.js"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0"></script>
+	<script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
+	<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1"></script>
 	<meta charset="utf-8">
 	<title>Log Analysis Results</title>
 	<script type="text/javascript">
@@ -72,7 +74,7 @@ htmlHeader = """
 
 		h2,
 		h3,
-  		h4{
+		h4 {
 			font-family: 'Roobert';
 			margin-top: 30px;
 			margin-bottom: 15px;
@@ -154,25 +156,92 @@ htmlHeader = """
 			background-color: #f0f0f0;
 			margin-left: 25px;
 		}
-		.chart-container {
-            max-width: auto;
-            margin: 20px auto;
-            overflow-x: auto;
-        }
 
-  		canvas {
-            height: 400px; /* Update the height as desired */
-        }
+		.chart-container {
+			max-width: auto;
+			margin: 20px auto;
+			overflow-x: auto;
+			position: relative;
+		}
+
+		canvas {
+			height: 400px;
+			/* Update the height as desired */
+		}
+
+		.popup {
+			position: fixed;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			background-color: white;
+			padding: 20px;
+			box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+			display: none;
+			z-index: 1;
+			border-collapse: collapse;
+			border-radius: 10px;
+			transition: transform 0.2s ease-in-out;
+			overflow: auto;
+		}
+
+		.help-message {
+			font-family: Arial, sans-serif;
+			line-height: 1.5;
+		}
 	</style>
 </head>
-<div class="chart-container">
-	<div class="chart-area">
-		<canvas id="myChart"></canvas>
+
+<body>
+	<div id="helpPopup" class="popup">
+		<i>Welcome to the Log Analyzer Report Documentation!</i>
+		<br><br>
+		<b> Chart Section </b>
+		<p>In the Chart section, you can analyze the log data using interactive charts.<br>
+			&nbsp;&nbsp;&nbsp;&nbsp;- To zoom in on a specific area, click and drag the cursor to select the desired region.<br>
+			&nbsp;&nbsp;&nbsp;&nbsp;- To reset the zoom level, simply double-click on the chart </p>
+		<b> Filtering </b>
+		<p> Filtering allows you to focus on specific data in the charts.<br>
+			&nbsp;&nbsp;&nbsp;&nbsp;- To filter the data, click on the legends corresponding to the data series you want
+			to view or hide.</p>
+
+		<b>Logs with Issues Found</b>
+
+		<p>The Logs with Issues Found section provides detailed information about identified issues in the logs. <br>
+			&nbsp;&nbsp;&nbsp;&nbsp; - Click on a file to navigate directly to it and review the associated log entries.
+		</p>
+
+		<b> Table Reports</b>
+		<p>The Table Reports section offers summarized views of the log data. <br>
+			&nbsp;&nbsp;&nbsp;&nbsp; - To sort the table, click on the column headers. You can sort by any column <br>
+			&nbsp;&nbsp;&nbsp;&nbsp; - To find solutions for errors, click on a row in the table to navigate to the
+			corresponding solution.</p>
 	</div>
-</div>
-<h3> Logs with issues found </h3>
-<div id="toc">
-</div>
+	<script>
+		document.addEventListener("keydown", function (event) {
+			if (event.key === "?") {
+				document.getElementById("helpPopup").style.display = "block"
+			}
+		});
+		document.addEventListener("keydown", function (event) {
+			if (event.key === "Escape") {
+				document.getElementById("helpPopup").style.display = "none";
+			}
+		});
+		window.onclick = function (event) {
+			if (event.target != document.getElementById("helpPopup")) {
+				document.getElementById("helpPopup").style.display = "none";
+			}
+		}
+	</script>
+	<div class="chart-container">
+		<div class="chart-area">
+			<canvas id="myChart"></canvas>
+		</div>
+	</div>
+	<h3> Logs with issues found </h3>
+	<div id="toc">
+	</div>
 """   # Thanks bing for beautifying the HTML report https://tinyurl.com/2l3hskkl :)
 
 barChart1= """
@@ -211,73 +280,86 @@ barChart2 = """
             });
 
             var ctx = document.getElementById("myChart").getContext("2d");
-            var myChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: hours,
-                    datasets: datasets
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        xAxes: [{
-                            scaleLabel: {
-                                display: true,
-                                labelString: 'Time'
-                            }
-                        }],
-                        yAxes: [{
-                            scaleLabel: {
-                                display: true,
-                                labelString: 'Number of Events'
-                            },
-                            ticks: {
-                                beginAtZero: true,
-                                precision: 0
-                            }
-                        }]
+    var myChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: hours,
+            datasets: datasets
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                xAxes: [{
+                    scaleLabel: {
+                        display: true,
+                        labelString: 'Time'
+                    }
+                }],
+                yAxes: [{
+                    scaleLabel: {
+                        display: true,
+                        labelString: 'Number of Events'
                     },
-					legend: {
-						display: true,
-						position: 'left',
-						labels: {
-							boxWidth: 20,
-							fontSize: 10,
-							padding: 10
-						},
-						onHover: function(e) {
-							e.target.style.cursor = 'pointer';
-						},
-					},
-                    hover: {
-                        onHover: function(e, elements) {
-                            if (elements && elements.length) {
-                                var index = elements[0]._index;
-                                var datasetIndex = elements[0]._datasetIndex;
-                                var meta = myChart.getDatasetMeta(datasetIndex);
-                                meta.data.forEach(function(bar, i) {
-                                    if (i === index) {
-                                        bar._model.backgroundColor = datasets[datasetIndex].hoverBackgroundColor;
-                                        bar._model.borderColor = datasets[datasetIndex].hoverBackgroundColor;
-                                    } else {
-                                        bar._model.backgroundColor = datasets[datasetIndex].backgroundColor;
-                                        bar._model.borderColor = datasets[datasetIndex].backgroundColor;
-                                    }
-                                });
-                                myChart.update();
+                    ticks: {
+                        beginAtZero: true,
+                        precision: 0
+                    }
+                }]
+            },
+            hover: {
+                onHover: function(e, elements) {
+                    if (elements && elements.length) {
+                        var index = elements[0]._index;
+                        var datasetIndex = elements[0]._datasetIndex;
+                        var meta = myChart.getDatasetMeta(datasetIndex);
+                        meta.data.forEach(function(bar, i) {
+                            if (i === index) {
+                                bar._model.backgroundColor = datasets[datasetIndex].hoverBackgroundColor;
+                                bar._model.borderColor = datasets[datasetIndex].hoverBackgroundColor;
+                            } else {
+                                bar._model.backgroundColor = datasets[datasetIndex].backgroundColor;
+                                bar._model.borderColor = datasets[datasetIndex].backgroundColor;
                             }
-                        }
+                        });
+                        myChart.update();
                     }
                 }
-            });
-			if (hours.length >= 25) {
-				var chartArea = document.querySelector('.chart-area');
-            	chartArea.style.width = (hours.length * 50) + 'px';
-			}
-        });
-    </script>
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    maxWidth: 500,
+                    onHover: function(e) {
+                        e.target.style.cursor = 'pointer';
+                    },
+                },
+                zoom: {
+                    zoom: {
+                        drag: {
+                            enabled: true,
+                            backgroundColor: 'rgba(225,225,225,1)',
+                        },
+                        mode: 'xy',
+                        speed: 0.05,
+                    }
+                }
+            }
+        },
+    });
+
+    var chartContainer = document.querySelector('.chart-container');
+    var chartArea = document.querySelector('.chart-area');
+    
+    chartContainer.addEventListener('dblclick', function () {
+        myChart.resetZoom();
+    });
+});
+</script>
 """
 htmlFooter = """
 Credits: <a href='https://www.kryogenix.org/code/browser/sorttable/sorttable.js'> sorttable.js </a> and <a href='https://www.chartjs.org/'> Chart.js </a>
+</body>
+</html>
 """
