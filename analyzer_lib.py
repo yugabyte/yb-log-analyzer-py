@@ -160,13 +160,74 @@ htmlHeader = """
             max-width: auto;
             margin: 20px auto;
             overflow-x: auto;
+            position: relative;
         }
 
   		canvas {
             height: 400px; /* Update the height as desired */
         }
+
+		.popup {
+			position: fixed;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			background-color: white;
+			padding: 20px;
+			box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+			display: none;
+			z-index: 1;
+			border-collapse: collapse;
+			border-radius: 10px;
+			transition: transform 0.2s ease-in-out;
+			overflow: auto;
+		}
+
+        .help-message {
+			font-family: Arial, sans-serif;
+            line-height: 1.5;
+		}
 	</style>
 </head>
+<body>
+    <div id="helpPopup" class="popup">
+		<i>Welcome to the Log Analyzer Report Documentation!</i>
+        <br><br>	
+		<b> Chart Section </b>
+		<p>In the Chart section, you can analyze the log data using interactive charts.<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;- To zoom in on a specific area, click and drag the cursor to select the desired region.<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;- To reset the zoom level, simply double-click on the chart </p>
+		<b> Filtering </b>
+		<p> Filtering allows you to focus on specific data in the charts.<br>
+	        &nbsp;&nbsp;&nbsp;&nbsp;- To filter the data, click on the legends corresponding to the data series you want to view or hide.</p>
+
+		<b>Logs with Issues Found</b>
+
+		<p>The Logs with Issues Found section provides detailed information about identified issues in the logs. <br>
+			&nbsp;&nbsp;&nbsp;&nbsp; - Click on a file to navigate directly to it and review the associated log entries.</p>
+
+		<b> Table Reports</b>
+		<p>The Table Reports section offers summarized views of the log data. <br>
+			&nbsp;&nbsp;&nbsp;&nbsp; - To sort the table, click on the column headers. You can sort by any column <br>
+            &nbsp;&nbsp;&nbsp;&nbsp; - To find solutions for errors, click on a row in the table to navigate to the corresponding solution.</p>		  
+	</div>
+ <script>
+	document.addEventListener("keydown", function (event) {
+		if (event.key === "?") {
+			document.getElementById("helpPopup").style.display = "block"
+		}
+	});
+	document.addEventListener("keydown", function (event) {
+		if (event.key === "Escape") {
+			document.getElementById("helpPopup").style.display = "none";
+		}
+	});
+	window.onclick = function (event) {
+		if (event.target != document.getElementById("helpPopup")) {
+			document.getElementById("helpPopup").style.display = "none";
+		}
+	}
+</script>
 <div class="chart-container">
 	<div class="chart-area">
 		<canvas id="myChart"></canvas>
@@ -272,14 +333,10 @@ barChart2 = """
                     zoom: {
                         drag: {
                             enabled: true,
+                            backgroundColor: 'rgba(225,225,225,1)',
                         },
-                        mode: 'x',
+                        mode: 'xy',
                         speed: 0.05,
-                    },
-                    pan: {
-                        enabled: true,
-                        mode: 'x',
-                        speed: 20,
                     }
                 }
             }
@@ -293,7 +350,10 @@ barChart2 = """
         myChart.resetZoom();
     });
 });
+</script>
 """
 htmlFooter = """
 Credits: <a href='https://www.kryogenix.org/code/browser/sorttable/sorttable.js'> sorttable.js </a> and <a href='https://www.chartjs.org/'> Chart.js </a>
+</body>
+</html>
 """
