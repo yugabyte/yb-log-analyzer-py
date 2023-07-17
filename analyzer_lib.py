@@ -1,7 +1,7 @@
+from analyzer_dict import solutions
 htmlHeader = """
 <!DOCTYPE html>
 <html>
-
 <head>
 	<script src="https://www.kryogenix.org/code/browser/sorttable/sorttable.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0"></script>
@@ -10,6 +10,18 @@ htmlHeader = """
 	<meta charset="utf-8">
 	<title>Log Analysis Results</title>
 	<script type="text/javascript">
+		var solutions =""" + str(solutions) + """ ;
+		for (var key in solutions) {
+			solutions[key] = solutions[key].replace(/\$start-code\$/g, "<code>");
+			solutions[key] = solutions[key].replace(/\$end-code\$/g, "</code>");
+			solutions[key] = solutions[key].replace(/\$start-bold\$/g, "<b>");
+			solutions[key] = solutions[key].replace(/\$end-bold\$/g, "</b>");
+			solutions[key] = solutions[key].replace(/\$start-link\$/g, "<a href='");
+			solutions[key] = solutions[key].replace(/\$end-link\$/g, "'>");
+			solutions[key] = solutions[key].replace(/\$end-link-text\$/g, "</a>");
+			solutions[key] = solutions[key].replace(/\$line-break\$/g, "<br>");
+			solutions[key] = solutions[key].replace(/\$tab\$/g, "&nbsp;&nbsp;&nbsp;&nbsp;");
+		}  
 		window.onload = function () {
 			var toc = document.getElementById("toc");
 			var headings = document.getElementsByTagName("h4", "h3", "h2");
@@ -43,24 +55,73 @@ htmlHeader = """
 			}
 			var rows = document.querySelectorAll("#main-table tbody tr");
 			for (var i = 0; i < rows.length; i++) {
-				rows[i].onclick = function () {
-					var rowHeading = this.querySelector("td:nth-of-type(2)").innerHTML;
-					var targetHeading = document.getElementById(rowHeading.toLowerCase().replace(/\s/g, "-").replace(/-+$/, ""));
-					if (targetHeading) {
-						var targetOffset = targetHeading.offsetTop - 10;
-						window.scrollTo(0, targetOffset);
-						// highlight the the heading and its content for 2 seconds with #C6C6C6 background color and with good animation
-						targetHeading.style.backgroundColor = "#C6C6C6";
-						targetHeading.style.transition = "background-color 1s ease-in-out";
-						var targetContent = targetHeading.nextElementSibling;
-						targetContent.style.backgroundColor = "#C6C6C6";
-						targetContent.style.transition = "background-color 1s ease-in-out";
-						setTimeout(function () {
-							targetHeading.style.backgroundColor = "";
-							targetContent.style.backgroundColor = "";
-						}, 2000);
+				rows[i].addEventListener("click", function () {
+					var message = this.cells[1].innerHTML.trim();
+					var solution = solutions[message];
+					// If solution is found, show popup
+					if (solution) {
+						var popup = document.getElementById("solutionPopup");
+						var popupTitle = document.getElementById("solutionTitle");
+						var popupContent = document.getElementById("solutionContent");
+						var closeButton = document.getElementById("closeButton");
+						popup.className = "popup";
+						popup.style.display = "block";
+						popup.style.zIndex = "1";
+						popup.style.position = "fixed";
+						popup.style.top = "50%";
+						popup.style.left = "50%";
+						popup.style.transform = "translate(-50%, -50%)";
+						popup.style.backgroundColor = "white";
+						popup.style.padding = "20px";
+						popup.style.boxShadow = "0 0 10px rgba(0, 0, 0, 0.3)";
+						popup.style.borderCollapse = "collapse";
+						popup.style.borderRadius = "10px";
+						popup.style.transition = "transform 0.2s ease-in-out";
+						popup.style.overflow = "auto";
+						popup.style.backgroundColor = "#eaeaea"
+
+						// Change the size of the popup when user hovers over it
+						popup.addEventListener("mouseover", function () {
+							popup.style.transform = "translate(-50%, -50%) scale(1.1)";
+						});
+						popup.addEventListener("mouseout", function () {
+							popup.style.transform = "translate(-50%, -50%)";
+						});
+						popupTitle.textContent = message;
+						popupContent.innerHTML = solution;
+						closeButton.addEventListener("click", function () {
+							popup.style.display = "none";
+						});
 					}
-				}
+				});
+			}
+		}
+  
+ 		document.addEventListener("keydown", function (event) {
+			if (event.key === "Escape") {
+				document.getElementById("solutionPopup").style.display = "none";
+			}
+		});
+
+		window.onclick = function (event) {
+			if (event.target != document.getElementById("solutionPopup")) {
+				document.getElementById("solutionPopup").style.display = "none";
+			}
+		} 
+  
+		document.addEventListener("keydown", function (event) {
+			if (event.key === "?") {
+				document.getElementById("helpPopup").style.display = "block"
+			}
+		});
+		document.addEventListener("keydown", function (event) {
+			if (event.key === "Escape") {
+				document.getElementById("helpPopup").style.display = "none";
+			}
+		});
+		window.onclick = function (event) {
+			if (event.target != document.getElementById("helpPopup")) {
+				document.getElementById("helpPopup").style.display = "none";
 			}
 		}
 	</script>
@@ -174,7 +235,7 @@ htmlHeader = """
 			top: 50%;
 			left: 50%;
 			transform: translate(-50%, -50%);
-			background-color: white;
+			background-color: #eaeaea;
 			padding: 20px;
 			box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
 			display: none;
@@ -185,16 +246,19 @@ htmlHeader = """
 			overflow: auto;
 		}
 
-		.help-message {
-			font-family: Arial, sans-serif;
-			line-height: 1.5;
-		}
 	</style>
 </head>
 
 <body>
+	<div id="solutionPopup" class="popup">
+		<button id="closeButton" class="clossButton">x</button>
+        <h2 id="solutionTitle"></h2>
+        <p id="solutionContent"></p>
+    </div>
 	<div id="helpPopup" class="popup">
-		<i>Welcome to the Log Analyzer Report Documentation!</i>
+ 		<button id="closeButton" class="clossButton">x</button>
+		<br>
+  		<i>Welcome to the Log Analyzer Report Documentation!</i>
 		<br><br>
 		<b> Chart Section </b>
 		<p>In the Chart section, you can analyze the log data using interactive charts.<br>
@@ -214,26 +278,8 @@ htmlHeader = """
 		<b> Table Reports</b>
 		<p>The Table Reports section offers summarized views of the log data. <br>
 			&nbsp;&nbsp;&nbsp;&nbsp; - To sort the table, click on the column headers. You can sort by any column <br>
-			&nbsp;&nbsp;&nbsp;&nbsp; - To find solutions for errors, click on a row in the table to navigate to the
-			corresponding solution.</p>
+			&nbsp;&nbsp;&nbsp;&nbsp; - To find solutions for errors, click on a row in the table.</p>
 	</div>
-	<script>
-		document.addEventListener("keydown", function (event) {
-			if (event.key === "?") {
-				document.getElementById("helpPopup").style.display = "block"
-			}
-		});
-		document.addEventListener("keydown", function (event) {
-			if (event.key === "Escape") {
-				document.getElementById("helpPopup").style.display = "none";
-			}
-		});
-		window.onclick = function (event) {
-			if (event.target != document.getElementById("helpPopup")) {
-				document.getElementById("helpPopup").style.display = "none";
-			}
-		}
-	</script>
 	<div class="chart-container">
 		<div class="chart-area">
 			<canvas id="myChart"></canvas>
@@ -266,9 +312,9 @@ barChart2 = """
             });
 
             var datasets = categories.map(function(category, index) {
-                var randomRed = Math.random() * 255;
-                var randomGreen = Math.random() * 255;
-                var randomBlue = Math.random() * 255;
+                var randomRed = Math.random() * 128;
+                var randomGreen = Math.random() * 128;
+                var randomBlue = Math.random() * 128;
                 var backgroundColor = `rgba(${randomRed}, ${randomGreen}, ${randomBlue}, 0.6)`;
                 var hoverBackgroundColor = `rgba(${randomRed}, ${randomGreen}, ${randomBlue}, 0.8)`;
                 return {

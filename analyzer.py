@@ -228,7 +228,6 @@ if __name__ == "__main__":
     if args.html:
         outputFile = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "_analysis.html"
         open(outputFile, "a").write(htmlHeader)
-        open(outputFile)
     else:
         outputFile = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "_analysis.txt"
     
