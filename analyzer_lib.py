@@ -251,12 +251,14 @@ htmlHeader = """
 
 <body>
 	<div id="solutionPopup" class="popup">
+		<button id="closeButton" class="clossButton">x</button>
         <h2 id="solutionTitle"></h2>
         <p id="solutionContent"></p>
     </div>
 	<div id="helpPopup" class="popup">
  		<button id="closeButton" class="clossButton">x</button>
-		<i>Welcome to the Log Analyzer Report Documentation!</i>
+		<br>
+  		<i>Welcome to the Log Analyzer Report Documentation!</i>
 		<br><br>
 		<b> Chart Section </b>
 		<p>In the Chart section, you can analyze the log data using interactive charts.<br>
@@ -310,9 +312,9 @@ barChart2 = """
             });
 
             var datasets = categories.map(function(category, index) {
-                var randomRed = Math.random() * 255;
-                var randomGreen = Math.random() * 255;
-                var randomBlue = Math.random() * 255;
+                var randomRed = Math.random() * 128;
+                var randomGreen = Math.random() * 128;
+                var randomBlue = Math.random() * 128;
                 var backgroundColor = `rgba(${randomRed}, ${randomGreen}, ${randomBlue}, 0.6)`;
                 var hoverBackgroundColor = `rgba(${randomRed}, ${randomGreen}, ${randomBlue}, 0.8)`;
                 return {
