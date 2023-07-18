@@ -100,28 +100,19 @@ htmlHeader = """
  		document.addEventListener("keydown", function (event) {
 			if (event.key === "Escape") {
 				document.getElementById("solutionPopup").style.display = "none";
+				document.getElementById("helpPopup").style.display = "none";
+			}
+			else if (event.key === "h" || event.key === "H" || event.key === "?") {
+				document.getElementById("helpPopup").style.display = "block";
 			}
 		});
 
 		window.onclick = function (event) {
-			if (event.target != document.getElementById("solutionPopup")) {
+			if (event.target !== document.getElementById("helpPopup")) {
+				document.getElementById("helpPopup").style.display = "none";
+			}
+			else if (event.target !== document.getElementById("solutionPopup")) {
 				document.getElementById("solutionPopup").style.display = "none";
-			}
-		} 
-  
-		document.addEventListener("keydown", function (event) {
-			if (event.key === "?") {
-				document.getElementById("helpPopup").style.display = "block"
-			}
-		});
-		document.addEventListener("keydown", function (event) {
-			if (event.key === "Escape") {
-				document.getElementById("helpPopup").style.display = "none";
-			}
-		});
-		window.onclick = function (event) {
-			if (event.target != document.getElementById("helpPopup")) {
-				document.getElementById("helpPopup").style.display = "none";
 			}
 		}
 	</script>
@@ -266,12 +257,10 @@ htmlHeader = """
 
 <body>
 	<div id="solutionPopup" class="popup">
-		<button id="closeButton" class="clossButton">x</button>
         <h2 id="solutionTitle"></h2>
         <p id="solutionContent"></p>
     </div>
 	<div id="helpPopup" class="popup">
- 		<button id="closeButton" class="clossButton">x</button>
 		<br>
   		<i>Welcome to the Log Analyzer Report Documentation!</i>
 		<br><br>
