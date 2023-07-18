@@ -207,6 +207,21 @@ htmlHeader = """
 		p {
 			margin-left: 20px;
 		}
+  
+  		code {
+		    background-color: #f0f0f0;
+		    padding: 0.2em 0.4em;
+		    margin: 0;
+		    font-size: 85%;
+		    border-radius: 4px;
+		    font-family: 'Monospace';
+		    background-color: #f6d9d0;
+		    border: solid 1px #ff6e42;
+		}
+
+		code:hover {
+		    cursor: pointer;
+		}
 
 		#toc {
 			position: relative;

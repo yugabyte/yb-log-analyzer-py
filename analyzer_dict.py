@@ -40,7 +40,7 @@ regex_patterns = {
 }
 solutions = {
     "Soft memory limit exceeded": """
-        Memory utilization has reached $start-code$ `memory_limit_soft_percentage` $end-code$ (default 85%) and system has started throttling read/write operations.$line-break$
+        Memory utilization has reached $start-code$memory_limit_soft_percentage$end-code$ (default 85%) and system has started throttling read/write operations.$line-break$
         $start-bold$ KB Article$end-bold$: $start-link$ https://support.yugabyte.com/hc/en-us/articles/360058731252-How-to-optimize-and-resolve-common-memory-errors-in-Yugabyte $end-link$ How to optimize and resolve common memory errors in Yugabyte $end-link-text$
         """,
     "Number of aborted transactions not cleaned up on account of reaching size limits": """
@@ -59,7 +59,7 @@ solutions = {
         We hit this issue if we have a hot shard and we keep hitting the same shard at a time at full throttle rather than spreading the workload.$line-break$
         $start-bold$ Useful Commands: $end-bold$ $line-break$
         $tab$ - Get the list of tablets hitting this issue.$line-break$
-        $tab$ $tab$ $start-code$ grep "operation memory consumption" <logfile>| awk '{print "T:", $6, "P:", $8}' | sort | uniq$end-code$ 
+        $tab$ $tab$ $start-code$grep "operation memory consumption" <logfile>| awk '{print "T:", $6, "P:", $8}' | sort | uniq$end-code$ 
         """,
     "Too big clock skew is detected": """
         This error indicates the nodes running tserver/master process are having clock skew outside of an acceptable range. Clock skew and clock drift can lead to significant consistency issues and should be fixed as soon as possible.$line-break$
