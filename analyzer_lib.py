@@ -115,6 +115,19 @@ htmlHeader = """
 				document.getElementById("solutionPopup").style.display = "none";
 			}
 		}
+
+		var codeBlocks = document.querySelectorAll("code");
+		window.onclick = function (event) {
+		    if (event.target.matches("code")) {
+		        var range = document.createRange();
+		        range.selectNode(event.target);
+		        window.getSelection().removeAllRanges();
+		        window.getSelection().addRange(range);
+		        document.execCommand("copy");
+		        window.getSelection().removeAllRanges();
+		    }
+		}
+  
 	</script>
 	<style>
 		body {
@@ -283,6 +296,13 @@ htmlHeader = """
 		<p>The Table Reports section offers summarized views of the log data. <br>
 			&nbsp;&nbsp;&nbsp;&nbsp; - To sort the table, click on the column headers. You can sort by any column <br>
 			&nbsp;&nbsp;&nbsp;&nbsp; - To find solutions for errors, click on a row in the table.</p>
+		<br>
+
+		<b> Tips </b>
+			<p>	Press <b>Esc</b> to close this or troubleshooting tip popup. <br>
+				Press <b>h</b>  or <b>?</b> to open the popup. <br>
+				Click on code blocks to copy them to clipboard.</p>
+		<br>
 	</div>
 	<div class="chart-container">
 		<div class="chart-area">
