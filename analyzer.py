@@ -131,7 +131,10 @@ def extractAllTarFiles(logDirectory):
             if file not in extractedFiles:
                 logger.info("Extracting file {}".format(file))
                 with tarfile.open(file, "r:gz") as tar:
-                    tar.extractall(os.path.dirname(file))
+                    try:
+                        tar.extractall(os.path.dirname(file))
+                    except EOFError:
+                        logger.warning("Got EOF Exception while extracting file {}, File might have still extracted. Please review manually ".format(file))
                 extractedFiles.append(file)
         if len(extractedFiles) >= len(getArchiveFiles(logDirectory)):
             extractedAll = True
