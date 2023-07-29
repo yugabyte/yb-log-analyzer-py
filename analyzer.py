@@ -28,7 +28,6 @@ parser.add_argument("--skip_tar", action="store_true", help="Skip tar file")
 parser.add_argument("-t", "--from_time", metavar= "MMDD HH:MM", dest="start_time", help="Specify start time")
 parser.add_argument("-T", "--to_time", metavar= "MMDD HH:MM", dest="end_time", help="Specify end time")
 parser.add_argument("-s", "--sort-by", dest="sort_by", choices=['NO','LO','FO'], help="Sort by: \n NO = Number of occurrences, \n LO = Last Occurrence,\n FO = First Occurrence(Default)")
-parser.add_argument("--html", action="store_true", help="Generate HTML report")
 args = parser.parse_args()
 
 # Validated start and end time format
@@ -197,17 +196,11 @@ def analyzeLogFiles(logFile, outputFile, start_time=None, end_time=None):
         )
     if table:
         with writeLock:
-            if args.html:
-                    formatLogFileForHTMLId = logFile.replace("/", "-").replace(".", "-").replace(" ", "-").replace(":", "-")
-                    open(outputFile, "a").write("<h4 id=" + formatLogFileForHTMLId + ">" + logFile + "</h4>")
-                    content = tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence"], tablefmt="html")
-                    content = content.replace("$line-break$", "<br>").replace("$tab$", "&nbsp;&nbsp;&nbsp;&nbsp;").replace("$start-code$", "<code>").replace("$end-code$", "</code>").replace("$start-bold$", "<b>").replace("$end-bold$", "</b>").replace("$start-italic$", "<i>").replace("$end-italic$", "</i>").replace("<table>", "<table class='sortable' id='main-table'>")
-                    open(outputFile, "a").write(content)
-            else:
-                    open(outputFile, "a").write("\n\n\nAnalysis of " + logFile + "\n\n")
-                    content = tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence"], tablefmt="simple_grid")
-                    content = content.replace("$line-break$", "\n").replace("$tab$", "\t").replace("$start-code$", "`").replace("$end-code$", "`").replace("$start-bold$", "**").replace("$end-bold$", "**").replace("$start-italic$", "*").replace("$end-italic$", "*")
-                    open(outputFile, "a").write(content)
+            formatLogFileForHTMLId = logFile.replace("/", "-").replace(".", "-").replace(" ", "-").replace(":", "-")
+            open(outputFile, "a").write("<h4 id=" + formatLogFileForHTMLId + ">" + logFile + "</h4>")
+            content = tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence"], tablefmt="html")
+            content = content.replace("$line-break$", "<br>").replace("$tab$", "&nbsp;&nbsp;&nbsp;&nbsp;").replace("$start-code$", "<code>").replace("$end-code$", "</code>").replace("$start-bold$", "<b>").replace("$end-bold$", "</b>").replace("$start-italic$", "<i>").replace("$end-italic$", "</i>").replace("<table>", "<table class='sortable' id='main-table'>")
+            open(outputFile, "a").write(content)
     else:
         listOfFilesWithNoErrors.append(logFile)
     logs.close()
@@ -227,13 +220,9 @@ def getSolution(message):
     return solutions[message]
     
 if __name__ == "__main__":
-    # Create output file
-    if args.html:
-        outputFile = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "_analysis.html"
-        open(outputFile, "a").write(htmlHeader)
-    else:
-        outputFile = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "_analysis.txt"
-    
+    outputFile = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "_analysis.html"
+    open(outputFile, "a").write(htmlHeader)
+
     # Get log files
     if args.log_files:
         logFileList = getLogFilesFromCommandLine()
@@ -270,47 +259,28 @@ if __name__ == "__main__":
                 histogramJSON[key] = value
     
     if listOfErrorsInAllFiles:
-        if args.html:
-            # Write bar chart
-            open(outputFile, "a").write(barChart1 + json.dumps(histogramJSON) + barChart2)
-            # Write troubleshooting tips
-            open(outputFile, "a").write("<h2 id=troubleshooting-tips> Troubleshooting Tips </h2>")
-            for error in listOfErrorsInAllFiles:
-                solution = getSolution(error)
-                formatErrorForHTMLId = error.replace(" ", "-").lower()
-                open(outputFile, "a").write("<h3 id=" + formatErrorForHTMLId + ">" + error + " </h3>")
-                content = solution.replace("$line-break$", "<br>").replace("$tab$", "&nbsp;&nbsp;&nbsp;&nbsp;").replace("$start-code$", "<code>").replace("$end-code$", "</code>")
-                content = content.replace("$start-bold$", "<b>").replace("$end-bold$", "</b>").replace("$start-italic$", "<i>").replace("$end-italic$", "</i>")
-                content = content.replace("$start-link$", "<a href='").replace("$end-link$", "' target='_blank'>").replace("$end-link-text$", "</a>")
-                open(outputFile, "a").write( "<p>" + content + " </p>")
-                open(outputFile, "a").write("<hr>")
-        else:
-            # Write troubleshooting tips
-            open(outputFile, "a").write("\n\n\nTroubleshooting Tips\n\n")
-            for error in listOfErrorsInAllFiles:
-                solution = getSolution(error)
-                open(outputFile, "a").write("### " + error + "\n\n")
-                content = solution.replace("$line-break$", "\n").replace("$tab$", "\t").replace("$start-code$", "`").replace("$end-code$", "`")
-                content = content.replace("$start-bold$", "**").replace("$end-bold$", "**").replace("$start-italic$", "*").replace("$end-italic$", "*")
-                content = content.replace("$start-link$", "").replace("$end-link$", "").replace("$end-link-text$", "")
-                open(outputFile, "a").write(content + "\n\n")    
+        # Write bar chart
+        open(outputFile, "a").write(barChart1 + json.dumps(histogramJSON) + barChart2)
+        # Write troubleshooting tips
+        open(outputFile, "a").write("<h2 id=troubleshooting-tips> Troubleshooting Tips </h2>")
+        for error in listOfErrorsInAllFiles:
+            solution = getSolution(error)
+            formatErrorForHTMLId = error.replace(" ", "-").lower()
+            open(outputFile, "a").write("<h3 id=" + formatErrorForHTMLId + ">" + error + " </h3>")
+            content = solution.replace("$line-break$", "<br>").replace("$tab$", "&nbsp;&nbsp;&nbsp;&nbsp;").replace("$start-code$", "<code>").replace("$end-code$", "</code>")
+            content = content.replace("$start-bold$", "<b>").replace("$end-bold$", "</b>").replace("$start-italic$", "<i>").replace("$end-italic$", "</i>")
+            content = content.replace("$start-link$", "<a href='").replace("$end-link$", "' target='_blank'>").replace("$end-link-text$", "</a>")
+            open(outputFile, "a").write( "<p>" + content + " </p>")
+            open(outputFile, "a").write("<hr>")
+
     # Write list of files with no errors
     if listOfAllFilesWithNoErrors:
-        if args.html:
-            open(outputFile, "a").write("<h2 id=files-with-no-issues> Files with no issues </h2>")
-            askForHelpHtml = """<p> Below list of files are shinier than my keyboard ⌨️ - no issues to report! If you do find something out of the ordinary ☠️ in them, <a href="https://github.com/yugabyte/yb-log-analyzer-py/issues/new?assignees=pgyogesh&labels=%23newmessage&template=add-new-message.md&title=%5BNew+Message%5D" target="_blank"> create a Github issue </a> and I'll put on my superhero 🦹‍♀️ cape to come to the rescue in future:\n </p>"""
-            open(outputFile, "a").write(askForHelpHtml)
-            open(outputFile, "a").write("<ul>")
-            for file in listOfAllFilesWithNoErrors:
-                open(outputFile, "a").write("<li>" + file + "</li>")
-            open(outputFile, "a").write("</ul>")
-
-        else:
-            askForHelp = """\n\n Below list of files do not have any issues to report! If you do find something out of the ordinary in them, create a Github issue at:
-            https://github.com/yugabyte/yb-log-analyzer-py/issues/new?assignees=pgyogesh&labels=%23newmessage&template=add-new-message.md&title=%5BNew+Message%5D\n\n"""
-            open(outputFile, "a").write(askForHelp)
-            for file in listOfAllFilesWithNoErrors:
-                open(outputFile, "a").write('- ' + file + "\n")
-    if args.html:
-        open(outputFile, "a").write(htmlFooter)
+        open(outputFile, "a").write("<h2 id=files-with-no-issues> Files with no issues </h2>")
+        askForHelpHtml = """<p> Below list of files are shinier than my keyboard ⌨️ - no issues to report! If you do find something out of the ordinary ☠️ in them, <a href="https://github.com/yugabyte/yb-log-analyzer-py/issues/new?assignees=pgyogesh&labels=%23newmessage&template=add-new-message.md&title=%5BNew+Message%5D" target="_blank"> create a Github issue </a> and I'll put on my superhero 🦹‍♀️ cape to come to the rescue in future:\n </p>"""
+        open(outputFile, "a").write(askForHelpHtml)
+        open(outputFile, "a").write("<ul>")
+        for file in listOfAllFilesWithNoErrors:
+            open(outputFile, "a").write("<li>" + file + "</li>")
+        open(outputFile, "a").write("</ul>")
+    open(outputFile, "a").write(htmlFooter)
     logger.info("Analysis complete. Results are in " + outputFile)
