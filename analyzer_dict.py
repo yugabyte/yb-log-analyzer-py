@@ -10,22 +10,9 @@
 #   The value is the solution for the log message                                                     
 # The keys in regex_patterns and solutions should be exactly the same
 # Formatting:
+#   - Solution should be in markdown format
+#   - 
 #   - Please do not use <variable> in the solution as it will be considered as html tags and will not be displayed rather use $variable
-#       Example: Instead of `grep <log-message> logfile` use `grep $log-message logfile`
-#--------------------:------------------------------:--------------------------------------------------------
-#   Block            : Description                  : Replaced with (Using python)
-#--------------------:------------------------------:--------------------------------------------------------
-#   $line-break$     : To insert line break         : <br>
-#   $start-bold$     : Start bold characters        : <b>
-#   $end-bold$       : End bold characters          : </b>
-#   $start-italic$   : start italic characters      : <i>
-#   $end-italic$     : end italic characters        : </i>
-#   $start-code$     : start code characters        : <code>
-#   $end-code$       : end code characters          : </code>
-#   $tab$            : tab space                    : &nbsp;&nbsp;&nbsp;&nbsp;
-#   $start-link$     : start link                   : <a href="
-#   $end-link$       : end link                     : ' target='_blank'>
-#   $end-link-text$  : end link text                : </a>
 ############################################################################################################
 
 regex_patterns = {
@@ -52,8 +39,7 @@ solutions = {
     "SST files limit exceeded": """Tablet has too many SST files. This could be because of slow compaction or load on the system.  
         **KB Article**: [Writes failed with error "SST files limit exceeded"](https://support.yugabyte.com/hc/en-us/articles/4491328438413-Writes-failed-with-error-SST-files-limit-exceeded-)
         """,
-    "Operation memory consumption has exceeded its limit": """We have an operation memory limit set to 1024 MB (Default) per tablet using `tablet_operation_memory_limit_mb`.  
-        We hit this issue if we have a hot shard and we keep hitting the same shard at a time at full throttle rather than spreading the workload.  
+    "Operation memory consumption has exceeded its limit": """We have an operation memory limit set to 1024 MB (Default) per tablet using `tablet_operation_memory_limit_mb`. We hit this issue if we have a hot shard and we keep hitting the same shard at a time at full throttle rather than spreading the workload.  
         **Useful Commands**:  
             - Get the list of tablets hitting this issue.  
             ```
