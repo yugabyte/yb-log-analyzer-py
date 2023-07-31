@@ -220,7 +220,7 @@ htmlHeader = """
 		    border-radius: 4px;
 		    font-family: 'Monospace';
 		    background-color: #f6d9d0;
-		    border: solid 1px #ff6e42;
+		    border: solid 1px #202020;
 		}
 
 		code:hover {
