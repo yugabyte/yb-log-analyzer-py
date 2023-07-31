@@ -232,7 +232,7 @@ if __name__ == "__main__":
         outputFile = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "_analysis.html"
         open(outputFile, "a").write(htmlHeader)
     else:
-        outputFile = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "_analysis.txt"
+        outputFile = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "_analysis.md"
     
     # Get log files
     if args.log_files:
@@ -274,19 +274,20 @@ if __name__ == "__main__":
             # Write bar chart
             open(outputFile, "a").write(barChart1 + json.dumps(histogramJSON) + barChart2)
             # Write troubleshooting tips
-            open(outputFile, "a").write("<h2 id=troubleshooting-tips> Troubleshooting Tips </h2>")
+            open(outputFile, "a").write("<h2 id=troubleshooting-tips> Troubleshooting Tips </h2>\n")
+            solutionMarkdown = "`"
             for error in listOfErrorsInAllFiles:
                 solution = getSolution(error)
-                formatErrorForHTMLId = error.replace(" ", "-").lower()
-                open(outputFile, "a").write("<h3 id=" + formatErrorForHTMLId + ">" + error + " </h3>")
-                content = solution.replace("$line-break$", "<br>").replace("$tab$", "&nbsp;&nbsp;&nbsp;&nbsp;").replace("$start-code$", "<code>").replace("$end-code$", "</code>")
-                content = content.replace("$start-bold$", "<b>").replace("$end-bold$", "</b>").replace("$start-italic$", "<i>").replace("$end-italic$", "</i>")
-                content = content.replace("$start-link$", "<a href='").replace("$end-link$", "' target='_blank'>").replace("$end-link-text$", "</a>")
-                open(outputFile, "a").write( "<p>" + content + " </p>")
-                open(outputFile, "a").write("<hr>")
+                solutionMarkdown += """### {}\n{}  \n\n---\n\n""".format(error, solution).replace('`','\`')
+                print(solutionMarkdown)
+            solutionMarkdown += "`"
+            open(outputFile, "a").write("""<script>htmlGenerator = new showdown.Converter();\n""")
+            open(outputFile, "a").write("""solutionsHTML = htmlGenerator.makeHtml({})\n""".format(solutionMarkdown))
+            open(outputFile, "a").write("""document.write(solutionsHTML);""")
+            open(outputFile, "a").write("""</script>""")
         else:
             # Write troubleshooting tips
-            open(outputFile, "a").write("\n\n\nTroubleshooting Tips\n\n")
+            open(outputFile, "a").write("\n\n\n# Troubleshooting Tips\n\n")
             for error in listOfErrorsInAllFiles:
                 solution = getSolution(error)
                 open(outputFile, "a").write("### " + error + "\n\n")

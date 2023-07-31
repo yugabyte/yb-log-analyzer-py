@@ -3,5 +3,6 @@
 sample_logs/*
 *analysis.txt
 *.html
+*.md
 test.py
 test.md
