@@ -279,7 +279,6 @@ if __name__ == "__main__":
             for error in listOfErrorsInAllFiles:
                 solution = getSolution(error)
                 solutionMarkdown += """### {}\n{}  \n\n---\n\n""".format(error, solution).replace('`','\`')
-                print(solutionMarkdown)
             solutionMarkdown += "`"
             open(outputFile, "a").write("""<script>htmlGenerator = new showdown.Converter();\n""")
             open(outputFile, "a").write("""solutionsHTML = htmlGenerator.makeHtml({})\n""".format(solutionMarkdown))
