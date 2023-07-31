@@ -7,21 +7,12 @@ htmlHeader = """
 	<script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0"></script>
 	<script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
 	<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/2.1.0/showdown.min.js"></script>
 	<meta charset="utf-8">
 	<title>Log Analysis Results</title>
 	<script type="text/javascript">
 		var solutions =""" + str(solutions) + """ ;
-		for (var key in solutions) {
-			solutions[key] = solutions[key].replace(/\$start-code\$/g, "<code>");
-			solutions[key] = solutions[key].replace(/\$end-code\$/g, "</code>");
-			solutions[key] = solutions[key].replace(/\$start-bold\$/g, "<b>");
-			solutions[key] = solutions[key].replace(/\$end-bold\$/g, "</b>");
-			solutions[key] = solutions[key].replace(/\$start-link\$/g, "<a href='");
-			solutions[key] = solutions[key].replace(/\$end-link\$/g, "'>");
-			solutions[key] = solutions[key].replace(/\$end-link-text\$/g, "</a>");
-			solutions[key] = solutions[key].replace(/\$line-break\$/g, "<br>");
-			solutions[key] = solutions[key].replace(/\$tab\$/g, "&nbsp;&nbsp;&nbsp;&nbsp;");
-		}  
+		htmlGenerator = new showdown.Converter();
 		window.onload = function () {
 			var toc = document.getElementById("toc");
 			var headings = document.getElementsByTagName("h4", "h3", "h2");
@@ -88,7 +79,7 @@ htmlHeader = """
 							popup.style.transform = "translate(-50%, -50%)";
 						});
 						popupTitle.textContent = message;
-						popupContent.innerHTML = solution;
+						popupContent.innerHTML = htmlGenerator.makeHtml(solution);
 						closeButton.addEventListener("click", function () {
 							popup.style.display = "none";
 						});
@@ -429,7 +420,10 @@ barChart2 = """
 </script>
 """
 htmlFooter = """
-Credits: <a href='https://www.kryogenix.org/code/browser/sorttable/sorttable.js'> sorttable.js </a> and <a href='https://www.chartjs.org/'> Chart.js </a>
+Credits: 
+Sorting Tables: <a href='https://www.kryogenix.org/code/browser/sorttable/sorttable.js'> sorttable.js </a>
+Chart: <a href='https://www.chartjs.org/'> Chart.js </a>
+Markdown to HTML: <a href='https://www.npmjs.com/package/showdown'> showdown.js </a>
 </body>
 </html>
 """
