@@ -11,7 +11,6 @@
 # The keys in regex_patterns and solutions should be exactly the same
 # Formatting:
 #   - Solution should be in markdown format
-#   - 
 #   - Please do not use <variable> in the solution as it will be considered as html tags and will not be displayed rather use $variable
 ############################################################################################################
 
