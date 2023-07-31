@@ -7,21 +7,12 @@ htmlHeader = """
 	<script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0"></script>
 	<script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
 	<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1"></script>
-	<meta charset="utf-8">
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/2.1.0/showdown.min.js"></script>
+ 	<meta charset="utf-8">
 	<title>Log Analysis Results</title>
 	<script type="text/javascript">
 		var solutions =""" + str(solutions) + """ ;
-		for (var key in solutions) {
-			solutions[key] = solutions[key].replace(/\$start-code\$/g, "<code>");
-			solutions[key] = solutions[key].replace(/\$end-code\$/g, "</code>");
-			solutions[key] = solutions[key].replace(/\$start-bold\$/g, "<b>");
-			solutions[key] = solutions[key].replace(/\$end-bold\$/g, "</b>");
-			solutions[key] = solutions[key].replace(/\$start-link\$/g, "<a href='");
-			solutions[key] = solutions[key].replace(/\$end-link\$/g, "'>");
-			solutions[key] = solutions[key].replace(/\$end-link-text\$/g, "</a>");
-			solutions[key] = solutions[key].replace(/\$line-break\$/g, "<br>");
-			solutions[key] = solutions[key].replace(/\$tab\$/g, "&nbsp;&nbsp;&nbsp;&nbsp;");
-		}  
+		htmlGenerator = new showdown.Converter();
 		window.onload = function () {
 			var toc = document.getElementById("toc");
 			var headings = document.getElementsByTagName("h4", "h3", "h2");
@@ -88,7 +79,7 @@ htmlHeader = """
 							popup.style.transform = "translate(-50%, -50%)";
 						});
 						popupTitle.textContent = message;
-						popupContent.innerHTML = solution;
+						popupContent.innerHTML = htmlGenerator.makeHtml(solution);
 						closeButton.addEventListener("click", function () {
 							popup.style.display = "none";
 						});
@@ -127,7 +118,14 @@ htmlHeader = """
 		        window.getSelection().removeAllRanges();
 		    }
 		}
-  
+
+		function closeHelpPopup() {
+   			document.getElementById("helpPopup").style.display = "none";
+  		}
+
+  		function closeSolutionPopup() {
+    		document.getElementById("solutionPopup").style.display = "none";
+  		}  
 	</script>
 	<style>
 		body {
@@ -220,7 +218,7 @@ htmlHeader = """
 		    border-radius: 4px;
 		    font-family: 'Monospace';
 		    background-color: #f6d9d0;
-		    border: solid 1px #ff6e42;
+		    border: solid 1px #202020;
 		}
 
 		code:hover {
@@ -270,10 +268,13 @@ htmlHeader = """
 
 <body>
 	<div id="solutionPopup" class="popup">
+		<button id="closeButton" onclick="closeSolutionPopup()">Close</button>
+		<br>
         <h2 id="solutionTitle"></h2>
         <p id="solutionContent"></p>
     </div>
 	<div id="helpPopup" class="popup">
+		<button id="closeButton" onclick="closeHelpPopup()">Close</button>
 		<br>
   		<i>Welcome to the Log Analyzer Report Documentation!</i>
 		<br><br>
