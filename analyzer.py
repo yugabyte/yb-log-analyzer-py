@@ -141,6 +141,7 @@ def extractAllTarFiles(logDirectory):
 def analyzeLogFiles(logFile, outputFile, start_time=None, end_time=None):
     previousTime = '0101 00:00' # Default time
     logger.info("Analyzing file {}".format(logFile))
+    barChartJSON = {}
     global writeLock
     if logFile.endswith(".gz"):
         logs = gzip.open(logFile, "rt")
@@ -150,9 +151,8 @@ def analyzeLogFiles(logFile, outputFile, start_time=None, end_time=None):
         lines = logs.readlines()
     except UnicodeDecodeError as e:
         logger.warning("Skipping file {} as it is not a text file".format(logFile))
-        return listOfErrorsInFile, listOfFilesWithNoErrors
+        return listOfErrorsInFile, listOfFilesWithNoErrors, barChartJSON
     results = {}
-    barChartJSON = {}
     for line in lines:
         timeFromLog = getTimeFromLog(line,previousTime)
         for message, pattern in regex_patterns.items():

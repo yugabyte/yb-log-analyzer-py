@@ -6,3 +6,4 @@ sample_logs/*
 *.md
 test.py
 test.md
+.DS_Store
