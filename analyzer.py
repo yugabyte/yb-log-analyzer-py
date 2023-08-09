@@ -20,10 +20,8 @@ parser = argparse.ArgumentParser(description="Log Analyzer for YugabyteDB logs")
 parser.add_argument("-l", "--log_files", nargs='+', help="List of log file[s]")
 parser.add_argument("-d", "--directory", help="Directory containing log files")
 parser.add_argument("--support_bundle", help="Path to support bundle")
+parser.add_argument("-o", "--output", metavar="FILE", dest="output_file", help="Output file name")
 parser.add_argument("-p", "--parallel", metavar="N", dest='numThreads', default=1, type=int, help="Run in parallel mode with N threads")
-parser.add_argument("-H", "--histogram", action="store_true", help="Generate histogram graph")
-parser.add_argument("-wc",'--word_count', action="store_true",help='List top 20 word count')
-parser.add_argument('-A','--ALL', action="store_true", help='FULL Health Check')
 parser.add_argument("--skip_tar", action="store_true", help="Skip tar file")
 parser.add_argument("-t", "--from_time", metavar= "MMDD HH:MM", dest="start_time", help="Specify start time")
 parser.add_argument("-T", "--to_time", metavar= "MMDD HH:MM", dest="end_time", help="Specify end time")
@@ -228,12 +226,18 @@ def getSolution(message):
     
 if __name__ == "__main__":
     # Create output file
-    if args.html:
-        outputFile = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "_analysis.html"
-        open(outputFile, "a").write(htmlHeader)
+    if not args.output_file:
+        if args.html:
+            outputFile = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "_analysis.html"
+            open(outputFile, "a").write(htmlHeader)
+        else:
+            outputFile = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "_analysis.md"
     else:
-        outputFile = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "_analysis.md"
-    
+        outputFile = args.output_file
+        if args.html:
+            open(outputFile, "a").write(htmlHeader)
+        
+
     # Get log files
     if args.log_files:
         logFileList = getLogFilesFromCommandLine()
