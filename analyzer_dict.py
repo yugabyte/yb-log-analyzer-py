@@ -23,7 +23,8 @@ regex_patterns = {
     "Too big clock skew is detected":r"Too big clock skew is detected",
     "Stopping writes because we have immutable memtables":r"Stopping writes because we have \d+ immutable memtables",
     "UpdateConsensus requests dropped due to backpressure":r"UpdateConsensus request.*dropped due to backpressure",
-    "Fail of leader detected":r"Fail of leader.*detected"
+    "Fail of leader detected":r"Fail of leader.*detected",
+    "Can't advance the committed index across term boundaries until operations from the current term are replicated":r"Can't advance the committed index across term boundaries until operations from the current term are replicated"
     # Add more log messages here
 }
 solutions = {
@@ -55,6 +56,16 @@ solutions = {
         **KB Article**: [Coordinator node overloaded rejecting connection](https://support.yugabyte.com/hc/en-us/articles/4404157217037-Coordinator-node-overloaded-rejecting-connection)
     """,
     "Fail of leader detected":"""This means that the failure of the leader is detected. More info to be added
+    """,
+    "Can't advance the committed index across term boundaries until operations from the current term are replicated":"""This means that the leader is not able to advance the committed index across term boundaries until operations from the current term are replicated.
+        **KB Article**: [Can't advance the committed index across term boundaries until operations from the current term are replicated](https://support.yugabyte.com/hc/en-us/articles/15642214673293-Can-t-advance-the-committed-index-across-term-boundaries-until-operations-from-the-current-term-are-replicated)
+        **Zendesk Tickets**: 
+            - [7872](https://yugabyte.zendesk.com/agent/tickets/7872)
+                - Customer observed high latency on YCQL API calls but latency on yb-tserver was normal.
+                - Latency was high on YCQL API calls because as leadership was not stable and found that leader was unable to advance the committed index across term boundaries as it was not able to replicate the NoOp to followers.
+            - [6137](https://yugabyte.zendesk.com/agent/tickets/6137)
+                - Customers backup was failing with "Timed our waiting for snapshot" error.
+                - Snapshot was failing because of the same reason as above.     
     """
     # Add more solutions here
 }
