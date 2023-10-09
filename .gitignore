@@ -1,6 +1,5 @@
 
 *.pyc
-sample_logs/*
 *analysis.txt
 *.html
 *.md
