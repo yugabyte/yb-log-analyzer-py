@@ -104,6 +104,7 @@ def getLogFilesFromSupportBundle(supportBundle):
         logger.info("Extracting support bundle to {}".format(support_bundle))
         tarFile.extractall(support_bundle)
         tarFile.close()
+        extractAllTarFiles(support_bundle)
         logFiles = getLogFilesFromDirectory(support_bundle)
     else:
         logFiles = getLogFilesFromDirectory(supportBundle)
