@@ -63,11 +63,19 @@ writeLock = Lock()
 # Setup a logger
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(asctime)s:%(levelname)s:- %(message)s')
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
 console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
+
+if args.directory:
+    log_file = os.path.join(args.directory, 'analyzer.log')
+else:
+    log_file = 'analyzer.log'
+file_handler = logging.FileHandler(log_file)
+file_handler.setLevel(logging.DEBUG)
+logger.addHandler(file_handler)
 
 # Function to get the log files from the command line
 def getLogFilesFromCommandLine():
@@ -114,7 +122,7 @@ def getArchiveFiles(logDirectory):
     archievedFiles = []
     for root, dirs, files in os.walk(logDirectory):
         for file in files:
-            if file.endswith(".tar.gz"):
+            if file.endswith(".tar.gz") or file.endswith(".tgz"):
                 archievedFiles.append(os.path.join(root,file))
     return archievedFiles
     
@@ -132,7 +140,8 @@ def extractAllTarFiles(logDirectory):
                     try:
                         tar.extractall(os.path.dirname(file))
                     except EOFError:
-                        logger.warning("Got EOF Exception while extracting file {}, File might have still extracted. Please review manually ".format(file))
+                        logger.warning("Got EOF Exception while extracting file {}, File might have still extracted. Please check {} for more information ".format(file, log_file))
+                        logger.error("EOF Exception while extracting file {}".format(file))
                 extractedFiles.append(file)
         if len(extractedFiles) >= len(getArchiveFiles(logDirectory)):
             extractedAll = True
@@ -151,6 +160,10 @@ def analyzeLogFiles(logFile, outputFile, start_time=None, end_time=None):
         lines = logs.readlines()
     except UnicodeDecodeError as e:
         logger.warning("Skipping file {} as it is not a text file".format(logFile))
+        return listOfErrorsInFile, listOfFilesWithNoErrors, barChartJSON
+    except Exception as e:
+        logger.warning("Problem occured while reading the file: {}".format(logFile))
+        logger.error(e)
         return listOfErrorsInFile, listOfFilesWithNoErrors, barChartJSON
     results = {}
     for line in lines:
@@ -248,7 +261,7 @@ if __name__ == "__main__":
     elif args.support_bundle:
         logFileList = getLogFilesFromSupportBundle(args.support_bundle)
     else:
-        logger.error("Please specify a log file, directory or support bundle")
+        logger.info("Please specify a log file, directory or support bundle")
         exit(1)
 
     # Check if log files were found
