@@ -101,6 +101,7 @@ def getLogFilesFromSupportBundle(supportBundle):
     if supportBundle.endswith(".tar.gz"):
         tarFile=tarfile.open(supportBundle, "r:gz")
         support_bundle="support_bundle_{}".format(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S"))
+        logger.info("Extracting support bundle to {}".format(support_bundle))
         tarFile.extractall(support_bundle)
         tarFile.close()
         logFiles = getLogFilesFromDirectory(support_bundle)
