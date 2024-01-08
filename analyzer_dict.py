@@ -11,6 +11,7 @@
 # The keys in regex_patterns and solutions should be exactly the same
 # Formatting:
 #   - Solution should be in markdown format
+#       - You can use http://demo.showdownjs.com/ for markdown preview
 #   - Please do not use <variable> in the solution as it will be considered as html tags and will not be displayed rather use $variable
 ############################################################################################################
 
@@ -28,7 +29,10 @@ regex_patterns = {
 # Add more log messages here
 }
 solutions = {
-"Soft memory limit exceeded": """Memory utilization has reached `memory_limit_soft_percentage` (default 85%) and system has started throttling read/write operations.  
+"Soft memory limit exceeded": """Memory utilization has reached `memory_limit_soft_percentage` (default 85%) and system has started throttling read/write operations.
+
+**NOTE**
+- If the number of occurrences of this message is low or happenings once in a while, then it is not a problem. We can ignore this message. It just indicates the busy system at that time.  
 **KB Article**: [How to optimize and resolve common memory errors in Yugabyte](https://support.yugabyte.com/hc/en-us/articles/360058731252-How-to-optimize-and-resolve-common-memory-errors-in-Yugabyte)
 """,
 "Number of aborted transactions not cleaned up on account of reaching size limits": """This typically means that we need to run compaction on offending tablets.  
@@ -49,7 +53,11 @@ solutions = {
 "Too big clock skew is detected": """This error indicates the nodes running tserver/master process are having clock skew outside of an acceptable range. Clock skew and clock drift can lead to significant consistency issues and should be fixed as soon as possible.  
 **KB Article**: [Too big clock skew leading to error messages or tserver crashes](https://support.yugabyte.com/hc/en-us/articles/4403707404173-Too-big-clock-skew-leading-to-error-messages-or-tserver-crashes)
 """,
-"Stopping writes because we have immutable memtables":"""This message is generally observed when a tablet has immutable memtables which need to flush to disk. It generally indicates that the application is writing at rate, and YB is not able to write the data to disk at the same speed, as the disk may be slow.  
+"Stopping writes because we have immutable memtables":"""This message is generally observed when a tablet has immutable memtables which need to flush to disk. It generally indicates that the application is writing at rate, and YB is not able to write the data to disk at the same speed, as the disk may be slow.
+
+**NOTE**
+- If the number of occurrences of this message is low or happenings once in a while, then it is not a problem. We can ignore this message. It just indicates the busy system at that time.
+
 **KB Article**: [Stopping writes because we have immutable memtables (waiting for flush)](https://support.yugabyte.com/hc/en-us/articles/14950181387277-Stopping-writes-because-we-have-2-immutable-memtables-waiting-for-flush-)
 """,
 "UpdateConsensus requests dropped due to backpressure":"""This message is generally observed when a tablet server is overloaded with UpdateConsensus requests and is not able to process the requests at the same rate as they are coming. This could also happen when there are a huge number of tablets created on the tablet server.  
@@ -57,7 +65,11 @@ solutions = {
 """,
 "Fail of leader detected":"""This means that the failure of the leader is detected. More info to be added
 """,
-"Can't advance the committed index across term boundaries until operations from the current term are replicated":"""This means that the leader is not able to advance the committed index across term boundaries until operations from the current term are replicated.   
+"Can't advance the committed index across term boundaries until operations from the current term are replicated":"""This means that the leader is not able to advance the committed index across term boundaries until operations from the current term are replicated.
+
+**NOTE**
+- If this message is not observed frequently, then we can ignore this message. We should only be concerned if this message is observed continuously and when tablet replication is stuck.
+   
 **KB Article**: [Can't advance the committed index across term boundaries until operations from the current term are replicated](https://support.yugabyte.com/hc/en-us/articles/15642214673293-Can-t-advance-the-committed-index-across-term-boundaries-until-operations-from-the-current-term-are-replicated)   
 **Zendesk Tickets**: 
 - [7872](https://yugabyte.zendesk.com/agent/tickets/7872)
