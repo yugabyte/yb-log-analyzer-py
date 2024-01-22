@@ -45,10 +45,20 @@ solutions = {
 """,
 "Operation memory consumption has exceeded its limit": """We have an operation memory limit set to 1024 MB (Default) per tablet using `tablet_operation_memory_limit_mb`. We hit this issue if we have a hot shard and we keep hitting the same shard at a time at full throttle rather than spreading the workload.  
 **Useful Commands**:  
+
+- Get the list of tablets hitting this issue.  
+
     - Get the list of tablets hitting this issue.  
-    ```
-    grep "operation memory consumption" logfile| awk '{print "T:", $6, "P:", $8}' | sort | uniq
-    ```
+This sorts the tablet IDs and removes duplicates, providing you with a list of unique tablet IDs.
+
+    `zgrep -o -E 'tablet: [a-f0-9]+' <log file name> | awk '{print $2}' | sort -u`
+
+You can also do something like:
+
+This will just count the uniq tablets affected and show the count ob tablets. 
+
+    `zgrep -o -E 'tablet: [a-f0-9]+' <log file name> | awk '{print $2}' | sort | uniq -c`
+
 """,
 "Too big clock skew is detected": """This error indicates the nodes running tserver/master process are having clock skew outside of an acceptable range. Clock skew and clock drift can lead to significant consistency issues and should be fixed as soon as possible.  
 **KB Article**: [Too big clock skew leading to error messages or tserver crashes](https://support.yugabyte.com/hc/en-us/articles/4403707404173-Too-big-clock-skew-leading-to-error-messages-or-tserver-crashes)
