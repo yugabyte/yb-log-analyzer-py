@@ -333,3 +333,8 @@ if __name__ == "__main__":
     if args.html:
         open(outputFile, "a").write(htmlFooter)
     logger.info("Analysis complete. Results are in " + outputFile)
+
+    # if hostname == "lincoln" then copy file to directory /tmp
+    if os.uname()[1] == "lincoln":
+        os.system("cp " + outputFile + " /home/support/logs_analyzer_dump")
+        logger.info("open http://lincoln:7777/" + outputFile + " to view the analysis")
