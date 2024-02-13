@@ -128,8 +128,9 @@ htmlHeader = """
   		}  
 	</script>
 	<style>
+		@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;700&display=swap');
 		body {
-			font-family: 'Inter';
+			font-family: 'Rubik', sans-serif;
 			background-color: #f0f0f0;
 			margin-left: 20px;
 			line-height: 1.5;
@@ -138,7 +139,7 @@ htmlHeader = """
 		h2,
 		h3,
 		h4 {
-			font-family: 'Roobert';
+			font-family: 'Rubik', sans-serif;
 			margin-top: 30px;
 			margin-bottom: 15px;
 			margin-left: 20px;
@@ -262,7 +263,18 @@ htmlHeader = """
 			transition: transform 0.2s ease-in-out;
 			overflow: auto;
 		}
+		.warning {
+			background-color: #fbf0ec;
+			color: #000000;
+			padding: 10px;
+			margin: 20px;
+			border-radius: 10px;
+			box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
 
+			b {
+				color: #ff6e42;
+			}
+		}
 	</style>
 </head>
 
@@ -309,6 +321,10 @@ htmlHeader = """
 		<div class="chart-area">
 			<canvas id="myChart"></canvas>
 		</div>
+	</div>
+ 	<div class="warning">
+		<b>Warning:</b> 
+		By default log_analyzer checks for logs for last 7 days. If you want to analyze older logs, Please re-run with -t option with desired start time.
 	</div>
 	<h3> Logs with issues found </h3>
 	<div id="toc">
