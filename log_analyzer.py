@@ -26,8 +26,12 @@ parser.add_argument("--skip_tar", action="store_true", help="Skip tar file")
 parser.add_argument("-t", "--from_time", metavar= "MMDD HH:MM", dest="start_time", help="Specify start time")
 parser.add_argument("-T", "--to_time", metavar= "MMDD HH:MM", dest="end_time", help="Specify end time")
 parser.add_argument("-s", "--sort-by", dest="sort_by", choices=['NO','LO','FO'], help="Sort by: \n NO = Number of occurrences, \n LO = Last Occurrence,\n FO = First Occurrence(Default)")
-parser.add_argument("--html", action="store_true", help="Generate HTML report")
+parser.add_argument("--html", action="store_true", default="true", help="Generate HTML report")
+parser.add_argument("--markdown",action="store_true", help="Generate Markdown report")
 args = parser.parse_args()
+
+if args.markdown:
+    args.html = False
 
 # Validated start and end time format
 if args.start_time:
