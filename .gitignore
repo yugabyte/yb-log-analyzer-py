@@ -8,3 +8,4 @@ test.md
 .DS_Store
 sample*
 sample_logs/analyzer.log
+analyzer.log

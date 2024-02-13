@@ -47,8 +47,12 @@ if args.end_time:
         print("Incorrect end time format, should be MMDD HH:MM")
         exit(1)
 
-# Define start and end time
-start_time = datetime.datetime.strptime(args.start_time, "%m%d %H:%M") if args.start_time else None
+# 7 days ago from today
+seven_days_ago = datetime.datetime.now() - datetime.timedelta(days=7)
+seven_days_ago = seven_days_ago.strftime("%m%d %H:%M")
+
+# If not start time then set it to today - 3 days in "MMDD HH:MM" format
+start_time = datetime.datetime.strptime(args.start_time, "%m%d %H:%M") if args.start_time else datetime.datetime.strptime(seven_days_ago, "%m%d %H:%M")
 end_time = datetime.datetime.strptime(args.end_time, "%m%d %H:%M") if args.end_time else None
 
 # Define the lists to store the results
