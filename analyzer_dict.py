@@ -15,7 +15,7 @@
 #   - Please do not use <variable> in the solution as it will be considered as html tags and will not be displayed rather use $variable
 ############################################################################################################
 
-regex_patterns = {
+universe_regex_patterns = {
 "Soft memory limit exceeded": r"Soft memory limit exceeded",
 "Number of aborted transactions not cleaned up on account of reaching size limits": r"Number of aborted transactions not cleaned up on account of reaching size limits",
 "Long wait for safe op id": r"Long wait for safe op id",
@@ -25,10 +25,12 @@ regex_patterns = {
 "Stopping writes because we have immutable memtables":r"Stopping writes because we have \d+ immutable memtables",
 "UpdateConsensus requests dropped due to backpressure":r"UpdateConsensus request.*dropped due to backpressure",
 "Fail of leader detected":r"Fail of leader.*detected",
-"Can't advance the committed index across term boundaries until operations from the current term are replicated":r"Can't advance the committed index across term boundaries until operations from the current term are replicated"
+"Can't advance the committed index across term boundaries until operations from the current term are replicated":r"Can't advance the committed index across term boundaries until operations from the current term are replicated",
+"Could not locate the leader master":r"Could not locate the leader master",
+"The follower will never be able to catch up":r"The follower will never be able to catch up"
 # Add more log messages here
 }
-solutions = {
+universe_solutions = {
 "Soft memory limit exceeded": """Memory utilization has reached `memory_limit_soft_percentage` (default 85%) and system has started throttling read/write operations.
 
 **NOTE**
@@ -82,7 +84,27 @@ solutions = {
     - Latency was high on YCQL API calls because as leadership was not stable and found that leader was unable to advance the committed index across term boundaries as it was not able to replicate the NoOp to followers.
 - [6137](https://yugabyte.zendesk.com/agent/tickets/6137)
     - Customers backup was failing with "Timed our waiting for snapshot" error.
-    - Snapshot was failing because of the same reason as above.     
+    - Snapshot was failing because of the same reason as above.
+""",
+"Could not locate the leader master":"""This means that the tablet server is not able to locate the leader master. This could be because of network issues or the master instances are unable to elect a leader.
+
+**NOTE**
+- If this message is not observed frequently, then we can ignore this message. We should only be concerned if this message is observed continuously by a perticular tablet server or while providing RCA of an issue happened at same time.
+""",
+"The follower will never be able to catch up":"""This means that the follower will never be able to catch up with the leader. This could be because of network issues or tablet server being down or overloaded. In case with tablets, they get removed and load balancer will take care of bootstrapping the new peers. But in case of master, We can follow below KB article.
+
+**KB Article**: [[INTERNAL] YugabyteDB Anywhere Generates an Under-Replicated Master Alert](https://support.yugabyte.com/hc/en-us/articles/10700352325645--INTERNAL-YugabyteDB-Anywhere-Generates-an-Under-Replicated-Master-Alert)
 """
 # Add more solutions here
+}
+
+pg_regex_patterns = {
+"latch already owned by": r"latch already owned by"
+}
+pg_solutions = {
+"latch already owned by": """This message is observed when a process is trying to acquire a latch that is already owned by another process. This probably means unexpected backend process termination. The backend was likely terminated without fully cleaning up its resources. This could indicate that the shared memory state between the backends is messed up and so a larger issue may occur in the future. Keeping the cluster around for investigation is recommended. Useful steps to debug this issue are:
+- Check the PostgreSQL logs for any errors or warnings.
+- Check the system logs for any hardware or OS errors. Look for OOM killer, segmenation faults, etc.
+- Contact engineering (specifically Sushant Mishra or Timothy Elgersma) for further assistance.
+"""
 }

@@ -1,4 +1,5 @@
-from analyzer_dict import solutions
+from analyzer_dict import universe_solutions, pg_solutions
+solutions = {**universe_solutions, **pg_solutions}
 htmlHeader = """
 <!DOCTYPE html>
 <html>

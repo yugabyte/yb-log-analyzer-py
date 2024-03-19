@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from multiprocessing import Pool, Lock
-from analyzer_dict import regex_patterns, solutions
+from analyzer_dict import universe_regex_patterns, universe_solutions, pg_regex_patterns, pg_solutions
 from analyzer_lib import *
 from histogram import *
 from collections import OrderedDict
@@ -23,8 +23,8 @@ parser.add_argument("--support_bundle", help="Path to support bundle")
 parser.add_argument("-o", "--output", metavar="FILE", dest="output_file", help="Output file name")
 parser.add_argument("-p", "--parallel", metavar="N", dest='numThreads', default=1, type=int, help="Run in parallel mode with N threads")
 parser.add_argument("--skip_tar", action="store_true", help="Skip tar file")
-parser.add_argument("-t", "--from_time", metavar= "MMDD HH:MM", dest="start_time", help="Specify start time")
-parser.add_argument("-T", "--to_time", metavar= "MMDD HH:MM", dest="end_time", help="Specify end time")
+parser.add_argument("-t", "--from_time", metavar= "MMDD HH:MM", dest="start_time", help="Specify start time in quotes")
+parser.add_argument("-T", "--to_time", metavar= "MMDD HH:MM", dest="end_time", help="Specify end time in quotes")
 parser.add_argument("-s", "--sort-by", dest="sort_by", choices=['NO','LO','FO'], help="Sort by: \n NO = Number of occurrences, \n LO = Last Occurrence,\n FO = First Occurrence(Default)")
 parser.add_argument("--html", action="store_true", default="true", help="Generate HTML report")
 parser.add_argument("--markdown",action="store_true", help="Generate Markdown report")
@@ -99,32 +99,31 @@ def getLogFilesFromDirectory(logDirectory):
     logFiles = []
     for root, dirs, files in os.walk(logDirectory):
         for file in files:
-            if file.__contains__("INFO") and file[0] != ".":
+            if file.__contains__("INFO") or file.__contains__("postgres") and file[0] != ".":
                 logFiles.append(os.path.join(root, file))
-    return logFiles
-
-# Function to get the log files from the support bundle -- Will be deprecated
-def getLogFilesFromSupportBundle(supportBundle):
-    logFiles = []
-    if supportBundle.endswith(".tar.gz"):
-        tarFile=tarfile.open(supportBundle, "r:gz")
-        support_bundle="support_bundle_{}".format(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S"))
-        logger.info("Extracting support bundle to {}".format(support_bundle))
-        tarFile.extractall(support_bundle)
-        tarFile.close()
-        extractAllTarFiles(support_bundle)
-        logFiles = getLogFilesFromDirectory(support_bundle)
-    else:
-        logFiles = getLogFilesFromDirectory(supportBundle)
     return logFiles
 
 # Function to get the time from the log line
 def getTimeFromLog(line,previousTime):
-    try:
-        timeFromLogStr = line.split(" ")[0][1:] + " " + line.split(" ")[1][:5]
-        timestamp = datetime.datetime.strptime(timeFromLogStr, "%m%d %H:%M")
-    except Exception as e:
-        timestamp = datetime.datetime.strptime(previousTime, "%m%d %H:%M")
+    # If line starts I,W,E,F then it is yugabyte log and time is in format I0319 14:50:44.286835
+    # Else it is postgres log and time is in format 2024-03-19 13:58:21.588 IST
+    # Convert the time to MMDD HH:MM format
+    if line[0] in ['I','W','E','F']:
+        try:
+            timeFromLogStr = line.split(" ")[0][1:] + " " + line.split(" ")[1][:5]
+            timestamp = datetime.datetime.strptime(timeFromLogStr, "%m%d %H:%M")
+        except Exception as e:
+            timestamp = datetime.datetime.strptime(previousTime, "%m%d %H:%M")
+    else:
+        try:
+            timeFromLogStr = line.split(" ")[0] + " " + line.split(" ")[1]
+            # Change the format of the time to MMDD HH:MM
+            timestamp = datetime.datetime.strptime(timeFromLogStr, "%Y-%m-%d %H:%M:%S.%f")
+            # Convert the time to UTC based on the timezone
+            timestamp = timestamp.strftime("%m%d %H:%M")
+            timestamp = datetime.datetime.strptime(timestamp, "%m%d %H:%M")
+        except Exception as e:
+            timestamp = datetime.datetime.strptime(previousTime, "%m%d %H:%M")
     return timestamp
 
 # Function to get all the tar files
@@ -158,6 +157,10 @@ def extractAllTarFiles(logDirectory):
 
 # Function to analyze the log files                
 def analyzeLogFiles(logFile, outputFile, start_time=None, end_time=None):
+    if logFile.__contains__("postgresql"):
+        regex_patterns = pg_regex_patterns
+    else:
+        regex_patterns = universe_regex_patterns
     previousTime = '0101 00:00' # Default time
     logger.info("Analyzing file {}".format(logFile))
     barChartJSON = {}
@@ -235,7 +238,6 @@ def analyzeLogFiles(logFile, outputFile, start_time=None, end_time=None):
     logger.info("Finished analyzing file {}".format(logFile))
     return listOfErrorsInFile, listOfFilesWithNoErrors, barChartJSON
         
-
 def get_histogram(logFile):
    print ("\nHistogram of logs creating time period\n")
    histogram(logFile)
@@ -268,10 +270,8 @@ if __name__ == "__main__":
         if not args.skip_tar:
             extractAllTarFiles(args.directory)
         logFileList = getLogFilesFromDirectory(args.directory)
-    elif args.support_bundle:
-        logFileList = getLogFilesFromSupportBundle(args.support_bundle)
     else:
-        logger.info("Please specify a log file, directory or support bundle")
+        logger.info("Please specify a log file, or directory")
         exit(1)
 
     # Check if log files were found
