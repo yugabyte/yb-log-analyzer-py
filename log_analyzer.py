@@ -15,6 +15,9 @@ import gzip
 import json
 
 
+
+
+
 # Command line arguments
 parser = argparse.ArgumentParser(description="Log Analyzer for YugabyteDB logs")
 parser.add_argument("-l", "--log_files", nargs='+', help="List of log file[s]")
@@ -85,6 +88,44 @@ file_handler = logging.FileHandler(log_file)
 file_handler.setLevel(logging.DEBUG)
 logger.addHandler(file_handler)
 
+
+# Get the node list
+def getTserversList():
+    tserversDir = []
+    tserverList = []
+    for root, dirs, files in os.walk(args.directory):
+        if "tserver" in dirs:
+            tserversDir.append(os.path.join(root, "tserver"))
+    for dir in tserversDir:
+        tserver = dir.split("/")[-2]
+        tserverList.append(tserver)
+    return tserverList
+
+def getMastersList():
+    mastersDir = []
+    masterList = []
+    for root, dirs, files in os.walk(args.directory):
+        if "master" in dirs:
+            mastersDir.append(os.path.join(root, "master"))
+    for dir in mastersDir:
+        master = dir.split("/")[-2]
+        masterList.append(master)
+    return masterList
+            
+
+# Get number of tablets per node
+def getNumTabletsPerNode():
+    tserversList = getTserversList()
+    numTabletsPerNode = {}
+    # Get tserver directories for each node
+    dirList = os.listdir(args.directory)
+    for node in tserversList:
+        if node in dirList:
+            tabletMetaDir = os.path.join(args.directory, node, "tserver", "tablet-meta")
+            print("Tablet Meta Dir: ", tabletMetaDir)
+            numTablets = len(os.listdir(tabletMetaDir))
+            numTabletsPerNode[node] = numTablets
+    return numTabletsPerNode
 
 # Function to get the gflags from the server.conf file    
 def getGFlags(confFile):
@@ -291,9 +332,20 @@ if __name__ == "__main__":
     if type(logFileList) is not list:
         logger.warning("No log files found")
         exit(1)
-    
-    # Get server.conf file
-    # Search for master/conf/server.conf file in the directory
+
+    # Add number of tablets per node to the output file in table format
+    if args.html:
+        open(outputFile, "a").write("<h2 id=tablets-per-node> Number of tablets per node </h2>")
+        open(outputFile, "a").write("<table class='sortable' id='tablets-table'>")
+        open(outputFile, "a").write("<tr><th>Node</th><th>Number of Tablets</th></tr>")
+        for key, value in getNumTabletsPerNode().items():
+            open(outputFile, "a").write("<tr><td>" + key + "</td><td>" + str(value) + "</td></tr>")
+        open(outputFile, "a").write("</table>")
+    else:
+        open(outputFile, "a").write("\n\n\n# Number of tablets per node\n\n")
+        for key, value in getNumTabletsPerNode().items():
+            open(outputFile, "a").write("- " + key + ": " + str(value) + "\n")
+
     masterConfFile = None
     tserverConfFile = None
     for root, dirs, files in os.walk(args.directory):
@@ -313,9 +365,9 @@ if __name__ == "__main__":
     allGFlags = {}
     if masterConfFile and tserverConfFile:
         allGFlags = set(list(gflags["master"].keys()) + list(gflags["tserver"].keys()))
-    elif not masterConfFile:
+    elif not masterConfFile and tserverConfFile:
         allGFlags = set(list(gflags["tserver"].keys()))
-    elif not tserverConfFile:
+    elif not tserverConfFile and masterConfFile:
         allGFlags = set(list(gflags["master"].keys()))
 
     if allGFlags:
@@ -415,3 +467,7 @@ if __name__ == "__main__":
     if os.uname()[1] == "lincoln":
         os.system("cp " + outputFile + " /home/support/logs_analyzer_dump")
         logger.info("open http://lincoln:7777/" + outputFile + " to view the analysis")
+
+    print("tserver list: ", getTserversList())
+    print("master list: ", getMastersList())
+    print("Number of tablets per node: ", getNumTabletsPerNode())
