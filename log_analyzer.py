@@ -85,6 +85,19 @@ file_handler = logging.FileHandler(log_file)
 file_handler.setLevel(logging.DEBUG)
 logger.addHandler(file_handler)
 
+
+# Function to get the gflags from the server.conf file    
+def getGFlags(confFile):
+    gflags = {}
+    with open(confFile, "r") as f:
+        for line in f:
+            if line.startswith("#") or not line.strip():
+                continue
+            key = line.split("=")[0].strip().replace("--", "")
+            value = line.split("=")[1].strip()
+            gflags[key] = value
+    return gflags
+
 # Function to get the log files from the command line
 def getLogFilesFromCommandLine():
     logFiles = []
@@ -250,19 +263,19 @@ def getSolution(message):
     return solutions[message]
     
 if __name__ == "__main__":
+    outputFilePrefix = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
     # Create output file
     if not args.output_file:
         if args.html:
-            outputFile = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "_analysis.html"
+            outputFile = outputFilePrefix + "_analysis.html"
             open(outputFile, "a").write(htmlHeader)
         else:
-            outputFile = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + "_analysis.md"
+            outputFile = outputFilePrefix + "_analysis.md"
     else:
         outputFile = args.output_file
         if args.html:
             open(outputFile, "a").write(htmlHeader)
-        
-
+            
     # Get log files
     if args.log_files:
         logFileList = getLogFilesFromCommandLine()
@@ -278,6 +291,62 @@ if __name__ == "__main__":
     if type(logFileList) is not list:
         logger.warning("No log files found")
         exit(1)
+    
+    # Get server.conf file
+    # Search for master/conf/server.conf file in the directory
+    masterConfFile = None
+    tserverConfFile = None
+    for root, dirs, files in os.walk(args.directory):
+        for file in files:
+            if file == "server.conf":
+                if root.__contains__("master"):
+                    masterConfFile = os.path.join(root, file)
+                elif root.__contains__("tserver"):
+                    tserverConfFile = os.path.join(root, file)
+
+    gflags = {}
+    if masterConfFile:
+        gflags["master"] = getGFlags(masterConfFile)
+    if tserverConfFile:
+        gflags["tserver"] = getGFlags(tserverConfFile)
+    
+    allGFlags = {}
+    if masterConfFile and tserverConfFile:
+        allGFlags = set(list(gflags["master"].keys()) + list(gflags["tserver"].keys()))
+    elif not masterConfFile:
+        allGFlags = set(list(gflags["tserver"].keys()))
+    elif not tserverConfFile:
+        allGFlags = set(list(gflags["master"].keys()))
+
+    if allGFlags:
+        if args.html:
+            open(outputFile, "a").write("<h2 id=gflags> GFlags </h2>")
+            open(outputFile, "a").write("<table class='sortable' id='gflags-table'>")
+            open(outputFile, "a").write("<tr><th>Flag</th><th>Master</th><th>TServer</th></tr>")
+            for flag in allGFlags:
+                open(outputFile, "a").write("<tr><td> <a href='https://github.com/search?q=repo%3Ayugabyte%2Fyugabyte-db+" + flag + "+language%3AXML++NOT+is%3Aarchived+path%3A%2F%5Emanaged%5C%2Fsrc%5C%2Fmain%5C%2Fresources%5C%2Fgflags_metadata%5C%2F%2F&type=code'>" + flag + "</a></td>")
+                if masterConfFile and tserverConfFile:
+                    open(outputFile, "a").write("<td>" + gflags["master"].get(flag, "-") + "</td>")
+                    open(outputFile, "a").write("<td>" + gflags["tserver"].get(flag, "-") + "</td></tr>")
+                elif masterConfFile:
+                    open(outputFile, "a").write("<td>" + gflags["master"].get(flag, "-") + "</td>")
+                    open(outputFile, "a").write("<td> - </td></tr>")
+                elif tserverConfFile:
+                    open(outputFile, "a").write("<td> - </td>")
+                    open(outputFile, "a").write("<td>" + gflags["tserver"].get(flag, "-") + "</td></tr>")
+            open(outputFile, "a").write("</table>")
+            open(outputFile, "a").write("<p> Note: The GFlags listed above are from only one of the nodes. So, placement related flags might be different on other nodes. Also, The list does not include the default values and the values set at runtime. </p>")
+        else:
+            open(outputFile, "a").write("\n\n\n# GFlags\n\n")
+            for flag in allGFlags:
+                open(outputFile, "a").write("- " + flag + "\n")
+                if masterConfFile and tserverConfFile:
+                    open(outputFile, "a").write("  - Master: " + gflags["master"].get(flag, "-") + "\n")
+                    open(outputFile, "a").write("  - TServer: " + gflags["tserver"].get(flag, "-") + "\n")
+                elif masterConfFile:
+                    open(outputFile, "a").write("  - Master: " + gflags["master"].get(flag, "-") + "\n")
+                elif tserverConfFile:
+                    open(outputFile, "a").write("  - TServer: " + gflags["tserver"].get(flag, "-") + "\n")
     
     logger.info("Number of files to analyze:" + str(len(logFileList)))
     

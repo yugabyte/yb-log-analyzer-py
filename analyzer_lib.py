@@ -165,10 +165,6 @@ htmlHeader = """
 			transition: transform 0.2s ease-in-out;
 		}
 
-		table:hover {
-			transform: scale(1.04);
-		}
-
 		th,
 		td {
 			padding: 10px;
@@ -189,6 +185,7 @@ htmlHeader = """
 		tr:hover {
 			background-color: #faf2f0;
 			cursor: pointer;
+			border-radius: 10px;
 		}
 
 		a {
@@ -200,7 +197,6 @@ htmlHeader = """
 		}
 
 		a:hover {
-			left: 5px;
 			color: #ff6e42;
 		}
 
