@@ -15,9 +15,6 @@ import gzip
 import json
 
 
-
-
-
 # Command line arguments
 parser = argparse.ArgumentParser(description="Log Analyzer for YugabyteDB logs")
 parser.add_argument("-l", "--log_files", nargs='+', help="List of log file[s]")
@@ -87,6 +84,13 @@ else:
 file_handler = logging.FileHandler(log_file)
 file_handler.setLevel(logging.DEBUG)
 logger.addHandler(file_handler)
+
+lock = Lock()
+def writeToFile(file, content):
+    lock.acquire()
+    with open(file, "a") as f:
+        f.write(content)
+    lock.release()
 
 # Get the node list
 def getTserversList():
@@ -158,9 +162,6 @@ def getLogFilesFromDirectory(logDirectory):
 
 # Function to get the time from the log line
 def getTimeFromLog(line,previousTime):
-    # If line starts I,W,E,F then it is yugabyte log and time is in format I0319 14:50:44.286835
-    # Else it is postgres log and time is in format 2024-03-19 13:58:21.588 IST
-    # Convert the time to MMDD HH:MM format
     if line[0] in ['I','W','E','F']:
         try:
             timeFromLogStr = line.split(" ")[0][1:] + " " + line.split(" ")[1][:5]
@@ -275,16 +276,17 @@ def analyzeLogFiles(logFile, outputFile, start_time=None, end_time=None):
     if table:
         with writeLock:
             if args.html:
-                    formatLogFileForHTMLId = logFile.replace("/", "-").replace(".", "-").replace(" ", "-").replace(":", "-")
-                    open(outputFile, "a").write("<h4 id=" + formatLogFileForHTMLId + ">" + logFile + "</h4>")
-                    content = tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence"], tablefmt="html")
-                    content = content.replace("$line-break$", "<br>").replace("$tab$", "&nbsp;&nbsp;&nbsp;&nbsp;").replace("$start-code$", "<code>").replace("$end-code$", "</code>").replace("$start-bold$", "<b>").replace("$end-bold$", "</b>").replace("$start-italic$", "<i>").replace("$end-italic$", "</i>").replace("<table>", "<table class='sortable' id='main-table'>")
-                    open(outputFile, "a").write(content)
+                formatLogFileForHTMLId = logFile.replace("/", "-").replace(".", "-").replace(" ", "-").replace(":", "-")
+                content = "<h4 id=" + formatLogFileForHTMLId + ">" + logFile + "</h4>"
+                content += tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence"], tablefmt="html")
+                content = content.replace("$line-break$", "<br>").replace("$tab$", "&nbsp;&nbsp;&nbsp;&nbsp;").replace("$start-code$", "<code>").replace("$end-code$", "</code>").replace("$start-bold$", "<b>").replace("$end-bold$", "</b>").replace("$start-italic$", "<i>").replace("$end-italic$", "</i>").replace("<table>", "<table class='sortable' id='main-table'>")
+                writeToFile(outputFile, content)
             else:
-                    open(outputFile, "a").write("\n\n\nAnalysis of " + logFile + "\n\n")
-                    content = tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence"], tablefmt="simple_grid")
-                    content = content.replace("$line-break$", "\n").replace("$tab$", "\t").replace("$start-code$", "`").replace("$end-code$", "`").replace("$start-bold$", "**").replace("$end-bold$", "**").replace("$start-italic$", "*").replace("$end-italic$", "*")
-                    open(outputFile, "a").write(content)
+                formatLogFileForMarkdown = logFile.replace("/", "-").replace(".", "-").replace(" ", "-").replace(":", "-")
+                content = "## " + formatLogFileForMarkdown + "\n\n"
+                content += tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence"], tablefmt="simple_grid")
+                content = content.replace("$line-break$", "\n").replace("$tab$", "\t").replace("$start-code$", "`").replace("$end-code$", "`").replace("$start-bold$", "**").replace("$end-bold$", "**").replace("$start-italic$", "*").replace("$end-italic$", "*")
+                writeToFile(outputFile, content)
     else:
         listOfFilesWithNoErrors.append(logFile)
     logs.close()
@@ -295,7 +297,6 @@ def getVersion(directory):
     files = getLogFilesFromDirectory(directory)
     version = "Unknown"
     for file in files:
-        print("File: ", file)
         if file.endswith('.gz'):
             logs = gzip.open(file, "rt")
         else:
@@ -309,21 +310,16 @@ def getVersion(directory):
             match = re.search(r'version\s+(\d+\.\d+\.\d+\.\d+)', line)
             if match:
                 version = match.group(1)
-                print("Version: ", version)
                 break
         logs.close()
         if version != "Unknown":
             break
     return version
         
-def get_histogram(logFile):
-   print ("\nHistogram of logs creating time period\n")
-   histogram(logFile)
+# def get_histogram(logFile):
+#    print ("\nHistogram of logs creating time period\n")
+#    histogram(logFile)
    
-def get_word_count(logFile):
-   print ("\nMost widely used word in logs\n")
-   word_count(logFile)
-
 def getSolution(message):
     return solutions[message]
     
@@ -333,13 +329,13 @@ if __name__ == "__main__":
     if not args.output_file:
         if args.html:
             outputFile = outputFilePrefix + "_analysis.html"
-            open(outputFile, "a").write(htmlHeader)
+            writeToFile(outputFile, htmlHeader)
         else:
             outputFile = outputFilePrefix + "_analysis.md"
     else:
         outputFile = args.output_file
         if args.html:
-            open(outputFile, "a").write(htmlHeader)
+            writeToFile(outputFile, htmlHeader)
             
     # Get log files
     if args.log_files:
@@ -360,22 +356,25 @@ if __name__ == "__main__":
     # Get the version of the software
     version= getVersion(args.directory)
     if args.html:
-
-        open(outputFile, "a").write("<h4> YugabyteDB Version: " + version + "</h4>")
+        content = "<h2> YugabyteDB Version: " + version + "</h2>"
+        writeToFile(outputFile, content)
     else:
-        open(outputFile, "a").write("YugabyteDB Version: " + version + "\n")
+        content = "# YugabyteDB Version: " + version + "\n"
+        writeToFile(outputFile, content)
     # Add number of tablets per node to the output file in table format
     if args.html:
-        open(outputFile, "a").write("<h2 id=tablets-per-node> Number of tablets per node </h2>")
-        open(outputFile, "a").write("<table class='sortable' id='tablets-table'>")
-        open(outputFile, "a").write("<tr><th>Node</th><th>Number of Tablets</th></tr>")
+        content = "<h2 id=tablets-per-node> Number of tablets per node </h2>"
+        content += "<table class='sortable' id='tablets-table'>"
+        content += "<tr><th>Node</th><th>Number of Tablets</th></tr>"
         for key, value in getNumTabletsPerNode().items():
-            open(outputFile, "a").write("<tr><td>" + key + "</td><td>" + str(value) + "</td></tr>")
-        open(outputFile, "a").write("</table>")
+            content += "<tr><td>" + key + "</td><td>" + str(value) + "</td></tr>"
+        content += "</table>"
+        writeToFile(outputFile, content)
     else:
-        open(outputFile, "a").write("\n\n\n# Number of tablets per node\n\n")
+        content = "\n\n\n# Number of tablets per node\n\n"
         for key, value in getNumTabletsPerNode().items():
-            open(outputFile, "a").write("- " + key + ": " + str(value) + "\n")
+            content += "- " + key + ": " + str(value) + "\n"
+        writeToFile(outputFile, content)
 
     masterConfFile = None
     tserverConfFile = None
@@ -403,34 +402,35 @@ if __name__ == "__main__":
 
     if allGFlags:
         if args.html:
-            open(outputFile, "a").write("<h2 id=gflags> GFlags </h2>")
-            open(outputFile, "a").write("<table class='sortable' id='gflags-table'>")
-            open(outputFile, "a").write("<tr><th>Flag</th><th>Master</th><th>TServer</th></tr>")
+            content = "<h2 id=gflags> GFlags </h2>"
+            content += "<table class='sortable' id='gflags-table'>"
+            content += "<tr><th>Flag</th><th>Master</th><th>TServer</th></tr>"
             for flag in allGFlags:
-                open(outputFile, "a").write("<tr><td> <a href='https://github.com/search?q=repo%3Ayugabyte%2Fyugabyte-db+" + flag + "+language%3AXML++NOT+is%3Aarchived+path%3A%2F%5Emanaged%5C%2Fsrc%5C%2Fmain%5C%2Fresources%5C%2Fgflags_metadata%5C%2F%2F&type=code'>" + flag + "</a></td>")
+                content += "<tr><td> <a href='https://github.com/search?q=repo%3Ayugabyte%2Fyugabyte-db+" + flag + "+language%3AXML++NOT+is%3Aarchived+path%3A%2F%5Emanaged%5C%2Fsrc%5C%2Fmain%5C%2Fresources%5C%2Fgflags_metadata%5C%2F%2F&type=code'>" + flag + "</a></td>"
                 if masterConfFile and tserverConfFile:
-                    open(outputFile, "a").write("<td>" + gflags["master"].get(flag, "-") + "</td>")
-                    open(outputFile, "a").write("<td>" + gflags["tserver"].get(flag, "-") + "</td></tr>")
+                    content += "<td>" + gflags["master"].get(flag, "-") + "</td>"
+                    content += "<td>" + gflags["tserver"].get(flag, "-") + "</td></tr>"
                 elif masterConfFile:
-                    open(outputFile, "a").write("<td>" + gflags["master"].get(flag, "-") + "</td>")
-                    open(outputFile, "a").write("<td> - </td></tr>")
+                    content += "<td>" + gflags["master"].get(flag, "-") + "</td>"
+                    content += "<td> - </td></tr>"
                 elif tserverConfFile:
-                    open(outputFile, "a").write("<td> - </td>")
-                    open(outputFile, "a").write("<td>" + gflags["tserver"].get(flag, "-") + "</td></tr>")
-            open(outputFile, "a").write("</table>")
-            open(outputFile, "a").write("<p> Note: The GFlags listed above are from only one of the nodes. So, placement related flags might be different on other nodes. Also, The list does not include the default values and the values set at runtime. </p>")
+                    content += "<td> - </td>"
+                    content += "<td>" + gflags["tserver"].get(flag, "-") + "</td></tr>"
+            content += "</table>"
+            content += "<p> Note: The GFlags listed above are from only one of the nodes. So, placement related flags might be different on other nodes. Also, The list does not include the default values and the values set at runtime. </p>"
+            writeToFile(outputFile, content)
         else:
-            open(outputFile, "a").write("\n\n\n# GFlags\n\n")
+            content = "\n\n\n# GFlags\n\n"
             for flag in allGFlags:
-                open(outputFile, "a").write("- " + flag + "\n")
+                content += "- " + flag + "\n"
                 if masterConfFile and tserverConfFile:
-                    open(outputFile, "a").write("  - Master: " + gflags["master"].get(flag, "-") + "\n")
-                    open(outputFile, "a").write("  - TServer: " + gflags["tserver"].get(flag, "-") + "\n")
+                    content += "  - Master: " + gflags["master"].get(flag, "-") + "\n"
+                    content += "  - TServer: " + gflags["tserver"].get(flag, "-") + "\n"
                 elif masterConfFile:
-                    open(outputFile, "a").write("  - Master: " + gflags["master"].get(flag, "-") + "\n")
+                    content += "  - Master: " + gflags["master"].get(flag, "-") + "\n"
                 elif tserverConfFile:
-                    open(outputFile, "a").write("  - TServer: " + gflags["tserver"].get(flag, "-") + "\n")
-    
+                    content += "  - TServer: " + gflags["tserver"].get(flag, "-") + "\n"
+            writeToFile(outputFile, content)    
     logger.info("Number of files to analyze:" + str(len(logFileList)))
     
     # Analyze log files
@@ -451,47 +451,49 @@ if __name__ == "__main__":
     if listOfErrorsInAllFiles:
         if args.html:
             # Write bar chart
-            open(outputFile, "a").write(barChart1 + json.dumps(histogramJSON) + barChart2)
-            # Write troubleshooting tips
-            open(outputFile, "a").write("<h2 id=troubleshooting-tips> Troubleshooting Tips </h2>\n")
+            content = barChart1 + json.dumps(histogramJSON) + barChart2
+            content += "<h2 id=troubleshooting-tips> Troubleshooting Tips </h2>\n"
             solutionMarkdown = "`"
             for error in listOfErrorsInAllFiles:
                 solution = getSolution(error)
                 solutionMarkdown += """### {}\n{}  \n\n---\n\n""".format(error, solution).replace('`','\`')
             solutionMarkdown += "`"
-            open(outputFile, "a").write("""<script>htmlGenerator = new showdown.Converter();\n""")
-            open(outputFile, "a").write("""solutionsHTML = htmlGenerator.makeHtml({})\n""".format(solutionMarkdown))
-            open(outputFile, "a").write("""document.write(solutionsHTML);""")
-            open(outputFile, "a").write("""</script>""")
+            content += """<script>htmlGenerator = new showdown.Converter();\n"""
+            content += """solutionsHTML = htmlGenerator.makeHtml({})\n""".format(solutionMarkdown)
+            content += """document.write(solutionsHTML);"""
+            content += """</script>"""
+            writeToFile(outputFile, content)
         else:
             # Write troubleshooting tips
-            open(outputFile, "a").write("\n\n\n# Troubleshooting Tips\n\n")
+            content = "\n\n\n# Troubleshooting Tips\n\n"
             for error in listOfErrorsInAllFiles:
                 solution = getSolution(error)
-                open(outputFile, "a").write("### " + error + "\n\n")
-                content = solution.replace("$line-break$", "\n").replace("$tab$", "\t").replace("$start-code$", "`").replace("$end-code$", "`")
-                content = content.replace("$start-bold$", "**").replace("$end-bold$", "**").replace("$start-italic$", "*").replace("$end-italic$", "*")
-                content = content.replace("$start-link$", "").replace("$end-link$", "").replace("$end-link-text$", "")
-                open(outputFile, "a").write(content + "\n\n")    
+                content += "### " + error + "\n\n"
+                content += solution.replace("$line-break$", "\n").replace("$tab$", "\t").replace("$start-code$", "`").replace("$end-code$", "`")
+                content += content.replace("$start-bold$", "**").replace("$end-bold$", "**").replace("$start-italic$", "*").replace("$end-italic$", "*")
+                content += content.replace("$start-link$", "").replace("$end-link$", "").replace("$end-link-text$", "")
+                writeToFile(outputFile, content)
     # Write list of files with no errors
     if listOfAllFilesWithNoErrors:
         if args.html:
-            open(outputFile, "a").write("<h2 id=files-with-no-issues> Files with no issues </h2>")
-            askForHelpHtml = """<p> Below list of files are shinier than my keyboard ⌨️ - no issues to report! If you do find something out of the ordinary ☠️ in them, <a href="https://github.com/yugabyte/yb-log-analyzer-py/issues/new?assignees=pgyogesh&labels=%23newmessage&template=add-new-message.md&title=%5BNew+Message%5D" target="_blank"> create a Github issue </a> and I'll put on my superhero 🦹‍♀️ cape to come to the rescue in future:\n </p>"""
-            open(outputFile, "a").write(askForHelpHtml)
-            open(outputFile, "a").write("<ul>")
+            content = "<h2 id=files-with-no-issues> Files with no issues </h2>"
+            content += """<p> Below list of files are shinier than my keyboard ⌨️ - no issues to report! If you do find something out of the ordinary ☠️ in them, <a href="https://github.com/yugabyte/yb-log-analyzer-py/issues/new?assignees=pgyogesh&labels=%23newmessage&template=add-new-message.md&title=%5BNew+Message%5D" target="_blank"> create a Github issue </a> and I'll put on my superhero 🦹‍♀️ cape to come to the rescue in future:\n </p>"""
+            content += "<ul>"
             for file in listOfAllFilesWithNoErrors:
-                open(outputFile, "a").write("<li>" + file + "</li>")
-            open(outputFile, "a").write("</ul>")
+                content += "<li>" + file + "</li>"
+            content += "</ul>"
+            writeToFile(outputFile, content)
 
         else:
-            askForHelp = """\n\n Below list of files do not have any issues to report! If you do find something out of the ordinary in them, create a Github issue at:
+            content = "\n\n\n# Files with no issues\n\n"
+            content += """\n\n Below list of files do not have any issues to report! If you do find something out of the ordinary in them, create a Github issue at:
             https://github.com/yugabyte/yb-log-analyzer-py/issues/new?assignees=pgyogesh&labels=%23newmessage&template=add-new-message.md&title=%5BNew+Message%5D\n\n"""
-            open(outputFile, "a").write(askForHelp)
+            content += "\n"
             for file in listOfAllFilesWithNoErrors:
-                open(outputFile, "a").write('- ' + file + "\n")
+                content += "- " + file + "\n"
+            writeToFile(outputFile, content)
     if args.html:
-        open(outputFile, "a").write(htmlFooter)
+        writeToFile(outputFile, htmlFooter)
     logger.info("Analysis complete. Results are in " + outputFile)
 
     # if hostname == "lincoln" then copy file to directory /tmp
