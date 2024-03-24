@@ -88,7 +88,6 @@ file_handler = logging.FileHandler(log_file)
 file_handler.setLevel(logging.DEBUG)
 logger.addHandler(file_handler)
 
-
 # Get the node list
 def getTserversList():
     tserversDir = []
@@ -291,6 +290,31 @@ def analyzeLogFiles(logFile, outputFile, start_time=None, end_time=None):
     logs.close()
     logger.info("Finished analyzing file {}".format(logFile))
     return listOfErrorsInFile, listOfFilesWithNoErrors, barChartJSON
+
+def getVersion(directory):
+    files = getLogFilesFromDirectory(directory)
+    version = "Unknown"
+    for file in files:
+        print("File: ", file)
+        if file.endswith('.gz'):
+            logs = gzip.open(file, "rt")
+        else:
+            logs = open(file, "r")
+        try:
+            lines = logs.readlines()[:10]
+        except UnicodeDecodeError as e:
+            logger.warning("Skipping file {} as it is not a text file".format(file))
+            continue
+        for line in lines:
+            match = re.search(r'version\s+(\d+\.\d+\.\d+\.\d+)', line)
+            if match:
+                version = match.group(1)
+                print("Version: ", version)
+                break
+        logs.close()
+        if version != "Unknown":
+            break
+    return version
         
 def get_histogram(logFile):
    print ("\nHistogram of logs creating time period\n")
@@ -333,6 +357,13 @@ if __name__ == "__main__":
         logger.warning("No log files found")
         exit(1)
 
+    # Get the version of the software
+    version= getVersion(args.directory)
+    if args.html:
+
+        open(outputFile, "a").write("<h4> YugabyteDB Version: " + version + "</h4>")
+    else:
+        open(outputFile, "a").write("YugabyteDB Version: " + version + "\n")
     # Add number of tablets per node to the output file in table format
     if args.html:
         open(outputFile, "a").write("<h2 id=tablets-per-node> Number of tablets per node </h2>")
