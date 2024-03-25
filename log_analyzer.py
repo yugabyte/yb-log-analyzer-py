@@ -115,11 +115,11 @@ def getMastersList():
     return masterList
             
 def getNodeDirectory(node):
-    dirList = os.listdir(args.directory)
-    if node in dirList:
-        nodeDir = os.path.join(args.directory, node)
-    return nodeDir
-
+    for root, dirs, files in os.walk(args.directory):
+        if dirs.__contains__(node):
+            nodeDir = os.path.join(root, node)
+            return nodeDir
+    return None
 # Function to get the node details
 def getNodeDetails():
     nodeDetails = {}
