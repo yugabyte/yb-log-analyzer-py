@@ -570,5 +570,12 @@ if __name__ == "__main__":
         caseNumber = logDir.split("/")[2]
         os.system("cp " + outputFile + " /home/support/logs_analyzer_dump/" + caseNumber + "-" + outputFile)
         logger.info("⌘+Click 👉👉 http://lincoln:7777/" + caseNumber + "-" + outputFile)
+        listOfFiles = os.listdir("/home/support/logs_analyzer_dump/")
+        open("/home/support/logs_analyzer_dump/index.html", "w").write("<h2> List of analyzed files </h2>")
+        for file in listOfFiles:
+            caseNumber = file.split("-")[0]
+            content = "<table><tr><td> Ticket Number </td><td> Analysis </td></tr>"
+            content += "<tr><td> " + caseNumber + " </td><td> <a href='" + file + "'>" + file + "</a> </td></tr></table>"
+            open("/home/support/logs_analyzer_dump/index.html", "a").write(content)
     else:
         logger.info("⌘+Click 👉👉 file://" + os.path.abspath(outputFile) + " to view the analysis")
