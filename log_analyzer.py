@@ -571,10 +571,11 @@ if __name__ == "__main__":
         os.system("cp " + outputFile + " /home/support/logs_analyzer_dump/" + caseNumber + "-" + outputFile)
         logger.info("⌘+Click 👉👉 http://lincoln:7777/" + caseNumber + "-" + outputFile)
         listOfFiles = os.listdir("/home/support/logs_analyzer_dump/")
+        content = "<table style='border-collapse: collapse; border: 1px solid black;'>"
+        content += "<tr><td style='border: 1px solid black; padding: 5px;'> Ticket Number </td><td style='border: 1px solid black; padding: 5px;'> Analysis </td></tr>"
         open("/home/support/logs_analyzer_dump/index.html", "w").write("<h2> List of analyzed files </h2>")
         for file in listOfFiles:
             caseNumber = file.split("-")[0]
-            content = "<table><tr><td> Ticket Number </td><td> Analysis </td></tr>"
             content += "<tr><td> " + caseNumber + " </td><td> <a href='" + file + "'>" + file + "</a> </td></tr></table>"
             open("/home/support/logs_analyzer_dump/index.html", "a").write(content)
     else:
