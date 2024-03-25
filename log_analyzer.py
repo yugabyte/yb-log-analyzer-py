@@ -538,6 +538,6 @@ if __name__ == "__main__":
         logDir = os.path.abspath(args.directory)
         caseNumber = logDir.split("/")[2]
         os.system("cp " + outputFile + " /home/support/logs_analyzer_dump/" + caseNumber + "-" + outputFile)
-        logger.info("⌘+Click 👉👉 http://lincoln:7777/" + outputFile + " to view the analysis")
+        logger.info("⌘+Click 👉👉 http://lincoln:7777/" + caseNumber + "-" + outputFile)
     else:
         logger.info("⌘+Click 👉👉 file://" + os.path.abspath(outputFile) + " to view the analysis")
