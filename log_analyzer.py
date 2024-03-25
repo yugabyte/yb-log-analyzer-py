@@ -417,7 +417,7 @@ if __name__ == "__main__":
         if args.html:
             content = "<h2 id=node-details> Node Details </h2>"
             content += "<table class='sortable' id='node-table'>"
-            content += "<tr><th>Node</th><th>Master UUID</th><th>TServer UUID</th><th>Placement</th><th>Running on Machine</th><th>Number of Tablets</th></tr>"
+            content += "<tr><th>Node</th><th>Master UUID</th><th>TServer UUID</th><th>Placement Info</th><th>Running on Machine</th><th>Number of Tablets</th></tr>"
             for key, value in getNodeDetails().items():
                 content += "<tr><td>" + key + "</td><td>" + value["masterUUID"] + "</td><td>" + value["tserverUUID"] + "</td><td>" + value["placement"] + "</td><td>"  + value["runningOnMachine"] + "</td><td>" + str(value["NumTablets"]) + "</td></tr>"
             content += "</table>"
@@ -428,7 +428,7 @@ if __name__ == "__main__":
                 content += "- " + key + "\n"
                 content += "  - Master UUID: " + value["masterUUID"] + "\n"
                 content += "  - TServer UUID: " + value["tserverUUID"] + "\n"
-                content += "  - Placement: " + value["placement"] + "\n"
+                content += "  - Placement Info: " + value["placement"] + "\n"
                 content += "  - Running on Machine: " + value["runningOnMachine"] + "\n"
                 content += "  - Number of Tablets: " + str(value["NumTablets"]) + "\n"
             writeToFile(outputFile, content)
@@ -456,6 +456,9 @@ if __name__ == "__main__":
         allGFlags = set(list(gflags["tserver"].keys()))
     elif not tserverConfFile and masterConfFile:
         allGFlags = set(list(gflags["master"].keys()))
+        
+    # Remove flags that are placement related
+    allGFlags = [flag for flag in allGFlags if not flag.startswith("placement_")]
 
     if allGFlags:
         if args.html:
@@ -474,7 +477,7 @@ if __name__ == "__main__":
                     content += "<td> - </td>"
                     content += "<td>" + gflags["tserver"].get(flag, "-") + "</td></tr>"
             content += "</table>"
-            content += "<p> Note: The GFlags listed above are from only one of the nodes. So, placement related flags might be different on other nodes. Also, The list does not include the default values and the values set at runtime. </p>"
+            content += "<p> Note: The GFlags listed above are from only one of the nodes. Also, This doesn't list the flags with default values and flags that are set runtime. </p>"
             writeToFile(outputFile, content)
         else:
             content = "\n\n\n# GFlags\n\n"
