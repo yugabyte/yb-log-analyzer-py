@@ -2,7 +2,6 @@
 from multiprocessing import Pool, Lock
 from analyzer_dict import universe_regex_patterns, universe_solutions, pg_regex_patterns, pg_solutions
 from analyzer_lib import *
-from histogram import *
 from collections import OrderedDict
 import logging
 import datetime
@@ -115,20 +114,56 @@ def getMastersList():
         masterList.append(master)
     return masterList
             
-
-# Get number of tablets per node
-def getNumTabletsPerNode():
-    tserversList = getTserversList()
-    numTabletsPerNode = {}
-    # Get tserver directories for each node
+def getNodeDirectory(node):
     dirList = os.listdir(args.directory)
-    for node in tserversList:
-        if node in dirList:
-            tabletMetaDir = os.path.join(args.directory, node, "tserver", "tablet-meta")
-            print("Tablet Meta Dir: ", tabletMetaDir)
-            numTablets = len(os.listdir(tabletMetaDir))
-            numTabletsPerNode[node] = numTablets
-    return numTabletsPerNode
+    if node in dirList:
+        nodeDir = os.path.join(args.directory, node)
+    return nodeDir
+
+# Function to get the node details
+def getNodeDetails():
+    nodeDetails = {}
+    nodeList = set(getTserversList() + getMastersList())
+    for node in nodeList:
+        nodeDir= getNodeDirectory(node)
+        if nodeDir:
+            tabletMeta = os.path.join(nodeDir,"tserver", "tablet-meta")
+            if os.path.exists(tabletMeta):
+                numTablets = len(os.listdir(tabletMeta))
+            else:
+                numTablets = "Unknown"
+            if os.path.exists(os.path.join(nodeDir, "tserver")):
+                tserverInstanceFile = os.path.join(nodeDir, "tserver", "instance")
+                if os.path.exists(tserverInstanceFile):
+                    raw_data = os.popen("yb-pbc-dump " + tserverInstanceFile).readlines()
+                    for line in raw_data:
+                        if line.startswith("uuid"):
+                            tserverUUID = line.split(":")[1].strip().replace('"','')
+                        if line.startswith("format_stamp"):
+                            runningOnMachine = line.split(" ")[-1].strip().replace('"','')
+                else:
+                    tserverUUID = "Unknown"
+            else:
+                tserverUUID = "Unknown"
+            if os.path.exists(os.path.join(nodeDir, "master")):
+                masterInstanceFile = os.path.join(nodeDir, "master", "instance")
+                if os.path.exists(masterInstanceFile):
+                    raw_data = os.popen("yb-pbc-dump " + masterInstanceFile).readlines()
+                    for line in raw_data:
+                        if line.startswith("uuid"):
+                            masterUUID = line.split(":")[1].strip().replace('"','')
+                        if line.startswith("format_stamp"):
+                            runningOnMachine = line.split(" ")[-1].strip().replace('"','').replace('"','')
+                else:
+                    masterUUID = "Unknown"
+            else:
+                masterUUID = "Unknown"
+            nodeDetails[node] = {}
+            nodeDetails[node]["tserverUUID"] = tserverUUID
+            nodeDetails[node]["masterUUID"] = masterUUID
+            nodeDetails[node]["runningOnMachine"] = runningOnMachine
+            nodeDetails[node]["NumTablets"] = numTablets
+    return nodeDetails
 
 # Function to get the gflags from the server.conf file    
 def getGFlags(confFile):
@@ -171,9 +206,7 @@ def getTimeFromLog(line,previousTime):
     else:
         try:
             timeFromLogStr = line.split(" ")[0] + " " + line.split(" ")[1]
-            # Change the format of the time to MMDD HH:MM
             timestamp = datetime.datetime.strptime(timeFromLogStr, "%Y-%m-%d %H:%M:%S.%f")
-            # Convert the time to UTC based on the timezone
             timestamp = timestamp.strftime("%m%d %H:%M")
             timestamp = datetime.datetime.strptime(timestamp, "%m%d %H:%M")
         except Exception as e:
@@ -315,10 +348,6 @@ def getVersion(directory):
         if version != "Unknown":
             break
     return version
-        
-# def get_histogram(logFile):
-#    print ("\nHistogram of logs creating time period\n")
-#    histogram(logFile)
    
 def getSolution(message):
     return solutions[message]
@@ -355,26 +384,33 @@ if __name__ == "__main__":
 
     # Get the version of the software
     version= getVersion(args.directory)
-    if args.html:
-        content = "<h2> YugabyteDB Version: " + version + "</h2>"
-        writeToFile(outputFile, content)
-    else:
-        content = "# YugabyteDB Version: " + version + "\n"
-        writeToFile(outputFile, content)
-    # Add number of tablets per node to the output file in table format
-    if args.html:
-        content = "<h2 id=tablets-per-node> Number of tablets per node </h2>"
-        content += "<table class='sortable' id='tablets-table'>"
-        content += "<tr><th>Node</th><th>Number of Tablets</th></tr>"
-        for key, value in getNumTabletsPerNode().items():
-            content += "<tr><td>" + key + "</td><td>" + str(value) + "</td></tr>"
-        content += "</table>"
-        writeToFile(outputFile, content)
-    else:
-        content = "\n\n\n# Number of tablets per node\n\n"
-        for key, value in getNumTabletsPerNode().items():
-            content += "- " + key + ": " + str(value) + "\n"
-        writeToFile(outputFile, content)
+    if version != "Unknown":
+        if args.html:
+            content = "<h2> YugabyteDB Version: " + version + "</h2>"
+            writeToFile(outputFile, content)
+        else:
+            content = "# YugabyteDB Version: " + version + "\n"
+            writeToFile(outputFile, content)
+
+    # Add node details to the output file in table format
+    if len(getNodeDetails()) > 0:
+        if args.html:
+            content = "<h2 id=node-details> Node Details </h2>"
+            content += "<table class='sortable' id='node-table'>"
+            content += "<tr><th>Node</th><th>Master UUID</th><th>TServer UUID</th><th> Running on Machine </th><th>Number of Tablets</th></tr>"
+            for key, value in getNodeDetails().items():
+                content += "<tr><td>" + key + "</td><td>" + value["masterUUID"] + "</td><td>" + value["tserverUUID"] + "</td><td>" + value["runningOnMachine"] + "</td><td>" + str(value["NumTablets"]) + "</td></tr>"
+            content += "</table>"
+            writeToFile(outputFile, content)
+        else:
+            content = "\n\n\n# Node Details\n\n"
+            for key, value in getNodeDetails().items():
+                content += "- " + key + "\n"
+                content += "  - Master UUID: " + value["masterUUID"] + "\n"
+                content += "  - TServer UUID: " + value["tserverUUID"] + "\n"
+                content += "  - Running on Machine: " + value["runningOnMachine"] + "\n"
+                content += "  - Number of Tablets: " + str(value["NumTablets"]) + "\n"
+            writeToFile(outputFile, content)
 
     masterConfFile = None
     tserverConfFile = None
@@ -499,8 +535,6 @@ if __name__ == "__main__":
     # if hostname == "lincoln" then copy file to directory /tmp
     if os.uname()[1] == "lincoln":
         os.system("cp " + outputFile + " /home/support/logs_analyzer_dump")
-        logger.info("open http://lincoln:7777/" + outputFile + " to view the analysis")
-
-    print("tserver list: ", getTserversList())
-    print("master list: ", getMastersList())
-    print("Number of tablets per node: ", getNumTabletsPerNode())
+        logger.info("⌘+Click 👉👉 http://lincoln:7777/" + outputFile + " to view the analysis")
+    else:
+        logger.info("⌘+Click 👉👉 file://" + os.path.abspath(outputFile) + " to view the analysis")
