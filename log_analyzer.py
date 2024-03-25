@@ -127,11 +127,14 @@ def getNodeDetails():
     for node in nodeList:
         nodeDir= getNodeDirectory(node)
         if nodeDir:
+            # Get the number of tablets
             tabletMeta = os.path.join(nodeDir,"tserver", "tablet-meta")
             if os.path.exists(tabletMeta):
                 numTablets = len(os.listdir(tabletMeta))
             else:
                 numTablets = "-"
+                
+            # Get the tserver UUID
             if os.path.exists(os.path.join(nodeDir, "tserver")):
                 tserverInstanceFile = os.path.join(nodeDir, "tserver", "instance")
                 if os.path.exists(tserverInstanceFile):
@@ -145,6 +148,8 @@ def getNodeDetails():
                     tserverUUID = "-"
             else:
                 tserverUUID = "-"
+                
+            # Get the master UUID
             if os.path.exists(os.path.join(nodeDir, "master")):
                 masterInstanceFile = os.path.join(nodeDir, "master", "instance")
                 if os.path.exists(masterInstanceFile):
@@ -158,9 +163,24 @@ def getNodeDetails():
                     masterUUID = "-"
             else:
                 masterUUID = "-"
+                
+            # Get Placement Details
+            gflagFile = os.path.join(nodeDir, "tserver", "conf", "server.conf")
+            with open(gflagFile, "r") as f:
+                for line in f:
+                    if line.__contains__("placement_cloud"):
+                        cloud = line.split("=")[1].strip()
+                    if line.__contains__("placement_region"):
+                        region = line.split("=")[1].strip()
+                    if line.__contains__("placement_zone"):
+                        zone = line.split("=")[1].strip()
+                placement = cloud + "." + region + "." + zone
+            
+            # Populate the node details
             nodeDetails[node] = {}
             nodeDetails[node]["tserverUUID"] = tserverUUID
             nodeDetails[node]["masterUUID"] = masterUUID
+            nodeDetails[node]["placement"] = placement
             nodeDetails[node]["runningOnMachine"] = runningOnMachine
             nodeDetails[node]["NumTablets"] = numTablets
     return nodeDetails
@@ -397,9 +417,9 @@ if __name__ == "__main__":
         if args.html:
             content = "<h2 id=node-details> Node Details </h2>"
             content += "<table class='sortable' id='node-table'>"
-            content += "<tr><th>Node</th><th>Master UUID</th><th>TServer UUID</th><th> Running on Machine </th><th>Number of Tablets</th></tr>"
+            content += "<tr><th>Node</th><th>Master UUID</th><th>TServer UUID</th><th>Placement</th><th>Running on Machine</th><th>Number of Tablets</th></tr>"
             for key, value in getNodeDetails().items():
-                content += "<tr><td>" + key + "</td><td>" + value["masterUUID"] + "</td><td>" + value["tserverUUID"] + "</td><td>" + value["runningOnMachine"] + "</td><td>" + str(value["NumTablets"]) + "</td></tr>"
+                content += "<tr><td>" + key + "</td><td>" + value["masterUUID"] + "</td><td>" + value["tserverUUID"] + "</td><td>" + value["placement"] + "</td><td>"  + value["runningOnMachine"] + "</td><td>" + str(value["NumTablets"]) + "</td></tr>"
             content += "</table>"
             writeToFile(outputFile, content)
         else:
@@ -408,6 +428,7 @@ if __name__ == "__main__":
                 content += "- " + key + "\n"
                 content += "  - Master UUID: " + value["masterUUID"] + "\n"
                 content += "  - TServer UUID: " + value["tserverUUID"] + "\n"
+                content += "  - Placement: " + value["placement"] + "\n"
                 content += "  - Running on Machine: " + value["runningOnMachine"] + "\n"
                 content += "  - Number of Tablets: " + str(value["NumTablets"]) + "\n"
             writeToFile(outputFile, content)
