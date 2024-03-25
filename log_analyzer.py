@@ -414,12 +414,19 @@ if __name__ == "__main__":
 
     # Add node details to the output file in table format
     if len(getNodeDetails()) > 0:
+        # Sum of all tablets
+        totalTablets = 0
+        for key, value in getNodeDetails().items():
+            totalTablets += value["NumTablets"]
+        
         if args.html:
             content = "<h2 id=node-details> Node Details </h2>"
             content += "<table class='sortable' id='node-table'>"
             content += "<tr><th>Node</th><th>Master UUID</th><th>TServer UUID</th><th>Placement Info</th><th>Running on Machine</th><th>Number of Tablets</th></tr>"
             for key, value in getNodeDetails().items():
-                content += "<tr><td>" + key + "</td><td>" + value["masterUUID"] + "</td><td>" + value["tserverUUID"] + "</td><td>" + value["placement"] + "</td><td>"  + value["runningOnMachine"] + "</td><td>" + str(value["NumTablets"]) + "</td></tr>"
+                # Calculate the percentage of tablets
+                percentage = round((value["NumTablets"] / totalTablets) * 100, 2)
+                content += "<tr><td>" + key + "</td><td>" + value["masterUUID"] + "</td><td>" + value["tserverUUID"] + "</td><td>" + value["placement"] + "</td><td>"  + value["runningOnMachine"] + "</td><td>" + str(value["NumTablets"]) + " (" + str(percentage) + "%) </td></tr>"
             content += "</table>"
             writeToFile(outputFile, content)
         else:
