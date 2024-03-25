@@ -131,7 +131,7 @@ def getNodeDetails():
             if os.path.exists(tabletMeta):
                 numTablets = len(os.listdir(tabletMeta))
             else:
-                numTablets = "Unknown"
+                numTablets = "-"
             if os.path.exists(os.path.join(nodeDir, "tserver")):
                 tserverInstanceFile = os.path.join(nodeDir, "tserver", "instance")
                 if os.path.exists(tserverInstanceFile):
@@ -142,9 +142,9 @@ def getNodeDetails():
                         if line.startswith("format_stamp"):
                             runningOnMachine = line.split(" ")[-1].strip().replace('"','')
                 else:
-                    tserverUUID = "Unknown"
+                    tserverUUID = "-"
             else:
-                tserverUUID = "Unknown"
+                tserverUUID = "-"
             if os.path.exists(os.path.join(nodeDir, "master")):
                 masterInstanceFile = os.path.join(nodeDir, "master", "instance")
                 if os.path.exists(masterInstanceFile):
@@ -155,9 +155,9 @@ def getNodeDetails():
                         if line.startswith("format_stamp"):
                             runningOnMachine = line.split(" ")[-1].strip().replace('"','').replace('"','')
                 else:
-                    masterUUID = "Unknown"
+                    masterUUID = "-"
             else:
-                masterUUID = "Unknown"
+                masterUUID = "-"
             nodeDetails[node] = {}
             nodeDetails[node]["tserverUUID"] = tserverUUID
             nodeDetails[node]["masterUUID"] = masterUUID
