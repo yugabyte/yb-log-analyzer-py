@@ -576,7 +576,8 @@ if __name__ == "__main__":
         open("/home/support/logs_analyzer_dump/index.html", "w").write("<h2> List of analyzed files </h2>")
         for file in listOfFiles:
             caseNumber = file.split("-")[0]
-            content += "<tr><td> " + caseNumber + " </td><td> <a href='" + file + "'>" + file + "</a> </td></tr></table>"
+            content += "<tr><td> " + caseNumber + " </td><td> <a href='" + file + "'>" + file + "</a> </td></tr>"
+            content += "</table>"
             open("/home/support/logs_analyzer_dump/index.html", "a").write(content)
     else:
         logger.info("⌘+Click 👉👉 file://" + os.path.abspath(outputFile) + " to view the analysis")
