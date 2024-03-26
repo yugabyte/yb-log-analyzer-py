@@ -577,10 +577,9 @@ if __name__ == "__main__":
         for file in listOfFiles:
             caseNumber = file.split("-")[0]
             content += "<tr><td> " + caseNumber + " </td><td> <a href='" + file + "'>" + file + "</a> </td></tr>"
-            content += "</table>"
-            # Delete index.html file if exists
-            if os.path.exists("/home/support/logs_analyzer_dump/index.html"):
-                os.remove("/home/support/logs_analyzer_dump/index.html")
-            open("/home/support/logs_analyzer_dump/index.html", "a").write(content)
+        content += "</table>"
+        if os.path.exists("/home/support/logs_analyzer_dump/index.html"):
+            os.remove("/home/support/logs_analyzer_dump/index.html")
+        open("/home/support/logs_analyzer_dump/index.html", "a").write(content)
     else:
         logger.info("⌘+Click 👉👉 file://" + os.path.abspath(outputFile) + " to view the analysis")
