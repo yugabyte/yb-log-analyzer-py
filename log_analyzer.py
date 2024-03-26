@@ -575,8 +575,9 @@ if __name__ == "__main__":
         content += "<tr><td style='border: 1px solid black; padding: 5px;'> Ticket Number </td><td style='border: 1px solid black; padding: 5px;'> Analysis </td></tr>"
         open("/home/support/logs_analyzer_dump/index.html", "w").write("<h2> List of analyzed files </h2>")
         for file in listOfFiles:
-            caseNumber = file.split("-")[0]
-            content += "<tr><td> " + caseNumber + " </td><td> <a href='" + file + "'>" + file + "</a> </td></tr>"
+            if file.endswith(".html"):
+                caseNumber = file.split("-")[0]
+                content += "<tr><td> " + caseNumber + " </td><td> <a href='" + file + "'>" + file + "</a> </td></tr>"
         content += "</table>"
         if os.path.exists("/home/support/logs_analyzer_dump/index.html"):
             os.remove("/home/support/logs_analyzer_dump/index.html")
