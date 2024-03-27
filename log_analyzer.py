@@ -18,7 +18,6 @@ import json
 parser = argparse.ArgumentParser(description="Log Analyzer for YugabyteDB logs")
 parser.add_argument("-l", "--log_files", nargs='+', help="List of log file[s]")
 parser.add_argument("-d", "--directory", help="Directory containing log files")
-parser.add_argument("--support_bundle", help="Path to support bundle")
 parser.add_argument("-o", "--output", metavar="FILE", dest="output_file", help="Output file name")
 parser.add_argument("-p", "--parallel", metavar="N", dest='numThreads', default=1, type=int, help="Run in parallel mode with N threads")
 parser.add_argument("--skip_tar", action="store_true", help="Skip tar file")
@@ -92,6 +91,34 @@ def writeToFile(file, content):
     lock.release()
 
 # Get the node list
+def getTserversMastersList(dirPaths):
+    tserversDir = []
+    tserverList = []
+    mastersDir = []
+    masterList = []
+    for dirPath in dirPaths:
+        for root, dirs, files in os.walk(dirPath):
+            if "tserver" in dirs:
+                tserversDir.append(os.path.join(root, "tserver"))
+            if "master" in dirs:
+                mastersDir.append(os.path.join(root, "master"))
+    for dir in tserversDir:
+        tserver = dir.split("/")[-2]
+        tserverList.append(tserver)
+    for dir in mastersDir:
+        master = dir.split("/")[-2]
+        masterList.append(master)
+    return tserverList, masterList
+
+def getDeploymentType(dirPaths):
+    for dirPath in dirPaths:
+        for root, dirs, files in os.walk(dirPath):
+            if "server.conf" in files:
+                return "vm"
+            elif "gflags" in dirs:
+                return "k8s"
+    return "Unknown"
+
 def getTserversList():
     tserversDir = []
     tserverList = []
@@ -115,74 +142,83 @@ def getMastersList():
     return masterList
             
 def getNodeDirectory(node):
-    for root, dirs, files in os.walk(args.directory):
-        if dirs.__contains__(node):
-            nodeDir = os.path.join(root, node)
-            return nodeDir
+    for dirPath in dirPaths:
+        for root, dirs, files in os.walk(dirPath):
+            if dirs.__contains__(node):
+                nodeDir = os.path.join(root, node)
+                return nodeDir
     return None
+
 # Function to get the node details
 def getNodeDetails():
     nodeDetails = {}
-    nodeList = set(getTserversList() + getMastersList())
-    for node in nodeList:
-        nodeDir= getNodeDirectory(node)
-        if nodeDir:
-            # Get the number of tablets
-            tabletMeta = os.path.join(nodeDir,"tserver", "tablet-meta")
-            if os.path.exists(tabletMeta):
-                numTablets = len(os.listdir(tabletMeta))
-            else:
-                numTablets = "-"
-                
-            # Get the tserver UUID
-            if os.path.exists(os.path.join(nodeDir, "tserver")):
-                tserverInstanceFile = os.path.join(nodeDir, "tserver", "instance")
-                if os.path.exists(tserverInstanceFile):
-                    raw_data = os.popen("yb-pbc-dump " + tserverInstanceFile).readlines()
-                    for line in raw_data:
-                        if line.startswith("uuid"):
-                            tserverUUID = line.split(":")[1].strip().replace('"','')
-                        if line.startswith("format_stamp"):
-                            runningOnMachine = line.split(" ")[-1].strip().replace('"','')
+    if getDeploymentType(dirPaths) == "vm": 
+        tserverList, masterList = getTserversMastersList(dirPaths)
+        nodeList = set(tserverList + masterList)
+        for node in nodeList:
+            nodeDir= getNodeDirectory(node)
+            if nodeDir:
+                # Get the number of tablets
+                tabletMeta = os.path.join(nodeDir,"tserver", "tablet-meta")
+                if os.path.exists(tabletMeta):
+                    numTablets = len(os.listdir(tabletMeta))
+                else:
+                    numTablets = 0
+
+                # Get the tserver UUID
+                if os.path.exists(os.path.join(nodeDir, "tserver")):
+                    tserverInstanceFile = os.path.join(nodeDir, "tserver", "instance")
+                    if os.path.exists(tserverInstanceFile):
+                        raw_data = os.popen("yb-pbc-dump " + tserverInstanceFile).readlines()
+                        for line in raw_data:
+                            if line.startswith("uuid"):
+                                tserverUUID = line.split(":")[1].strip().replace('"','')
+                            if line.startswith("format_stamp"):
+                                runningOnMachine = line.split(" ")[-1].strip().replace('"','')
+                    else:
+                        tserverUUID = "-"
+                        runningOnMachine = "-"
                 else:
                     tserverUUID = "-"
-            else:
-                tserverUUID = "-"
-                
-            # Get the master UUID
-            if os.path.exists(os.path.join(nodeDir, "master")):
-                masterInstanceFile = os.path.join(nodeDir, "master", "instance")
-                if os.path.exists(masterInstanceFile):
-                    raw_data = os.popen("yb-pbc-dump " + masterInstanceFile).readlines()
-                    for line in raw_data:
-                        if line.startswith("uuid"):
-                            masterUUID = line.split(":")[1].strip().replace('"','')
-                        if line.startswith("format_stamp"):
-                            runningOnMachine = line.split(" ")[-1].strip().replace('"','').replace('"','')
+                    runningOnMachine = "-"
+
+                # Get the master UUID
+                if os.path.exists(os.path.join(nodeDir, "master")):
+                    masterInstanceFile = os.path.join(nodeDir, "master", "instance")
+                    if os.path.exists(masterInstanceFile):
+                        raw_data = os.popen("yb-pbc-dump " + masterInstanceFile).readlines()
+                        for line in raw_data:
+                            if line.startswith("uuid"):
+                                masterUUID = line.split(":")[1].strip().replace('"','')
+                            if line.startswith("format_stamp"):
+                                runningOnMachine = line.split(" ")[-1].strip().replace('"','').replace('"','')
+                    else:
+                        masterUUID = "-"
                 else:
                     masterUUID = "-"
-            else:
-                masterUUID = "-"
-                
-            # Get Placement Details
-            gflagFile = os.path.join(nodeDir, "tserver", "conf", "server.conf")
-            with open(gflagFile, "r") as f:
-                for line in f:
-                    if line.__contains__("placement_cloud"):
-                        cloud = line.split("=")[1].strip()
-                    if line.__contains__("placement_region"):
-                        region = line.split("=")[1].strip()
-                    if line.__contains__("placement_zone"):
-                        zone = line.split("=")[1].strip()
-                placement = cloud + "." + region + "." + zone
-            
-            # Populate the node details
-            nodeDetails[node] = {}
-            nodeDetails[node]["tserverUUID"] = tserverUUID
-            nodeDetails[node]["masterUUID"] = masterUUID
-            nodeDetails[node]["placement"] = placement
-            nodeDetails[node]["runningOnMachine"] = runningOnMachine
-            nodeDetails[node]["NumTablets"] = numTablets
+
+                # Get Placement Details
+                gflagFile = os.path.join(nodeDir, "tserver", "conf", "server.conf")
+                if os.path.exists(gflagFile):
+                    with open(gflagFile, "r") as f:
+                        for line in f:
+                            if line.__contains__("placement_cloud"):
+                                cloud = line.split("=")[1].strip()
+                            if line.__contains__("placement_region"):
+                                region = line.split("=")[1].strip()
+                            if line.__contains__("placement_zone"):
+                                zone = line.split("=")[1].strip()
+                        placement = cloud + "." + region + "." + zone
+                else:
+                    placement = "-"
+
+                # Populate the node details
+                nodeDetails[node] = {}
+                nodeDetails[node]["tserverUUID"] = tserverUUID
+                nodeDetails[node]["masterUUID"] = masterUUID
+                nodeDetails[node]["placement"] = placement
+                nodeDetails[node]["runningOnMachine"] = runningOnMachine
+                nodeDetails[node]["NumTablets"] = numTablets
     return nodeDetails
 
 # Function to get the gflags from the server.conf file    
@@ -241,7 +277,11 @@ def getArchiveFiles(logDirectory):
             if file.endswith(".tar.gz") or file.endswith(".tgz"):
                 archievedFiles.append(os.path.join(root,file))
     return archievedFiles
-    
+
+def extractTarFile(file):
+    with tarfile.open(file, "r:gz") as tar:
+        # extract to filename directory
+        tar.extractall(os.path.dirname(file))
 # Function to extract all the tar files    
 def extractAllTarFiles(logDirectory):
     extractedFiles = []
@@ -346,8 +386,11 @@ def analyzeLogFiles(logFile, outputFile, start_time=None, end_time=None):
     logger.info("Finished analyzing file {}".format(logFile))
     return listOfErrorsInFile, listOfFilesWithNoErrors, barChartJSON
 
-def getVersion(directory):
-    files = getLogFilesFromDirectory(directory)
+def getVersion():
+    if args.log_files:
+        files = getLogFilesFromCommandLine()
+    elif args.directory:
+        files = getLogFilesFromDirectory(args.directory)
     version = "Unknown"
     for file in files:
         if file.endswith('.gz'):
@@ -373,6 +416,7 @@ def getSolution(message):
     return solutions[message]
     
 if __name__ == "__main__":
+    dirPaths = []
     outputFilePrefix = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
     # Create output file
     if not args.output_file:
@@ -389,21 +433,38 @@ if __name__ == "__main__":
     # Get log files
     if args.log_files:
         logFileList = getLogFilesFromCommandLine()
+        # if files are tar files, extract them
+        if not args.skip_tar:
+            print(logFileList)
+            for file in logFileList:
+                if file.endswith(".tar.gz") or file.endswith(".tgz"):
+                    logger.info("Extracting file {}".format(file))
+                    extractTarFile(file)
+                    extractedDir = file.replace(".tar.gz", "").replace(".tgz", "")
+                    # Exctract the tar files in extracted directory
+                    extractAllTarFiles(extractedDir)
+                    dirPaths.append(extractedDir)
+                    logFileList += getLogFilesFromDirectory(extractedDir)
+        print(logFileList)
     elif args.directory:
         if not args.skip_tar:
             extractAllTarFiles(args.directory)
         logFileList = getLogFilesFromDirectory(args.directory)
+        dirPaths.append(args.directory)
+        print(logFileList)
     else:
         logger.info("Please specify a log file, or directory")
         exit(1)
 
+    print(dirPaths)
+    
     # Check if log files were found
     if type(logFileList) is not list:
         logger.warning("No log files found")
         exit(1)
 
     # Get the version of the software
-    version= getVersion(args.directory)
+    version= getVersion()
     if version != "Unknown":
         if args.html:
             content = "<h2> YugabyteDB Version: " + version + "</h2>"
@@ -425,7 +486,10 @@ if __name__ == "__main__":
             content += "<tr><th>Node</th><th>Master UUID</th><th>TServer UUID</th><th>Placement Info</th><th>Running on Machine</th><th>Number of Tablets</th></tr>"
             for key, value in getNodeDetails().items():
                 # Calculate the percentage of tablets
-                percentage = round((value["NumTablets"] / totalTablets) * 100, 2)
+                try:
+                    percentage = round((value["NumTablets"] / totalTablets) * 100, 2)
+                except ZeroDivisionError:
+                    percentage = str("N/A")
                 content += "<tr><td>" + key + "</td><td>" + value["masterUUID"] + "</td><td>" + value["tserverUUID"] + "</td><td>" + value["placement"] + "</td><td>"  + value["runningOnMachine"] + "</td><td>" + str(value["NumTablets"]) + " (" + str(percentage) + "%) </td></tr>"
             content += "</table>"
             writeToFile(outputFile, content)
@@ -442,13 +506,14 @@ if __name__ == "__main__":
 
     masterConfFile = None
     tserverConfFile = None
-    for root, dirs, files in os.walk(args.directory):
-        for file in files:
-            if file == "server.conf":
-                if root.__contains__("master"):
-                    masterConfFile = os.path.join(root, file)
-                elif root.__contains__("tserver"):
-                    tserverConfFile = os.path.join(root, file)
+    for path in dirPaths:
+        for root, dirs, files in os.walk(path):
+            for file in files:
+                if file == "server.conf":
+                    if root.__contains__("master"):
+                        masterConfFile = os.path.join(root, file)
+                    elif root.__contains__("tserver"):
+                        tserverConfFile = os.path.join(root, file)
 
     gflags = {}
     if masterConfFile:
@@ -497,9 +562,9 @@ if __name__ == "__main__":
                     content += "  - Master: " + gflags["master"].get(flag, "-") + "\n"
                 elif tserverConfFile:
                     content += "  - TServer: " + gflags["tserver"].get(flag, "-") + "\n"
-            writeToFile(outputFile, content)    
-    logger.info("Number of files to analyze:" + str(len(logFileList)))
+            writeToFile(outputFile, content)
     
+    logger.info("Number of files to analyze:" + str(len(logFileList)))
     # Analyze log files
     pool = Pool(processes=args.numThreads)
     for listOfErrorsInFile, listOfFilesWithNoErrors, barChartJSON in pool.starmap(analyzeLogFiles, [(file, outputFile, start_time, end_time) for file in logFileList]):
