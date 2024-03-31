@@ -92,35 +92,18 @@ def writeToFile(file, content):
 
 # Get the node list
 def getTserversMastersList(dirPaths):
-    tserversDir = []
     tserverList = []
-    mastersDir = []
     masterList = []
-    if getDeploymentType(dirPaths) == "vm":
-        for dirPath in dirPaths:
-            for root, dirs, files in os.walk(dirPath):
-                if "tserver" in dirs:
-                    tserversDir.append(os.path.join(root, "tserver"))
-                if "master" in dirs:
-                    mastersDir.append(os.path.join(root, "master"))
-        for dir in tserversDir:
-            tserver = dir.split("/")[-2]
-            tserverList.append(tserver)
-        for dir in mastersDir:
-            master = dir.split("/")[-2]
-            masterList.append(master)
-    elif getDeploymentType(dirPaths) == "k8s":
-        for dirPath in dirPaths:
-            for root, dirs, files in os.walk(dirPath):
-                if "universe_logs" in dirs:
-                    listFiles = os.listdir(os.path.join(root, "universe_logs"))
-                    for file in listFiles:
-                        if file.__contains__("tserver") and file.endswith(".tar.gz"):
-                            tserver = file.removesuffix(".tar.gz")
-                            tserverList.append(tserver)
-                        if file.__contains__("master") and file.endswith(".tar.gz"):
-                            master = file.removesuffix(".tar.gz")
-                            masterList.append(master)
+    for dirPath in dirPaths:
+        for root, dirs, files in os.walk(dirPath):
+            if "instance" in files:
+                instancePath = os.path.join(root, "instance")
+                if instancePath.__contains__("tserver"):
+                    tserverList.append(instancePath.split("/")[-3])
+                elif instancePath.__contains__("master"):
+                    masterList.append(instancePath.split("/")[-3])
+    print("Tservers: ", tserverList)
+    print("Masters: ", masterList)
     return tserverList, masterList
 
 def getDeploymentType(dirPaths):
@@ -131,28 +114,6 @@ def getDeploymentType(dirPaths):
             elif "gflags" in dirs:
                 return "k8s"
     return "Unknown"
-
-def getTserversList():
-    tserversDir = []
-    tserverList = []
-    for root, dirs, files in os.walk(args.directory):
-        if "tserver" in dirs:
-            tserversDir.append(os.path.join(root, "tserver"))
-    for dir in tserversDir:
-        tserver = dir.split("/")[-2]
-        tserverList.append(tserver)
-    return tserverList
-
-def getMastersList():
-    mastersDir = []
-    masterList = []
-    for root, dirs, files in os.walk(args.directory):
-        if "master" in dirs:
-            mastersDir.append(os.path.join(root, "master"))
-    for dir in mastersDir:
-        master = dir.split("/")[-2]
-        masterList.append(master)
-    return masterList
             
 def getNodeDirectory(node):
     for dirPath in dirPaths:
@@ -163,158 +124,83 @@ def getNodeDirectory(node):
     return None
 
 # Function to get the node details
+
 def getNodeDetails():
     nodeDetails = {}
-    if getDeploymentType(dirPaths) == "vm": 
-        tserverList, masterList = getTserversMastersList(dirPaths)
-        nodeList = set(tserverList + masterList)
-        for node in nodeList:
-            nodeDir= getNodeDirectory(node)
-            if nodeDir:
-                # Get the number of tablets
-                tabletMeta = os.path.join(nodeDir,"tserver", "tablet-meta")
-                if os.path.exists(tabletMeta):
-                    numTablets = len(os.listdir(tabletMeta))
-                else:
-                    numTablets = 0
-
-                # Get the tserver UUID
-                if os.path.exists(os.path.join(nodeDir, "tserver")):
-                    tserverInstanceFile = os.path.join(nodeDir, "tserver", "instance")
-                    if os.path.exists(tserverInstanceFile):
-                        raw_data = os.popen("yb-pbc-dump " + tserverInstanceFile).readlines()
-                        for line in raw_data:
-                            if line.startswith("uuid"):
-                                tserverUUID = line.split(":")[1].strip().replace('"','')
-                            if line.startswith("format_stamp"):
-                                runningOnMachine = line.split(" ")[-1].strip().replace('"','')
-                    else:
-                        tserverUUID = "-"
-                        runningOnMachine = "-"
-                else:
-                    tserverUUID = "-"
-                    runningOnMachine = "-"
-
-                # Get the master UUID
-                if os.path.exists(os.path.join(nodeDir, "master")):
-                    masterInstanceFile = os.path.join(nodeDir, "master", "instance")
-                    if os.path.exists(masterInstanceFile):
-                        raw_data = os.popen("yb-pbc-dump " + masterInstanceFile).readlines()
-                        for line in raw_data:
-                            if line.startswith("uuid"):
-                                masterUUID = line.split(":")[1].strip().replace('"','')
-                            if line.startswith("format_stamp"):
-                                runningOnMachine = line.split(" ")[-1].strip().replace('"','').replace('"','')
-                    else:
-                        masterUUID = "-"
-                else:
-                    masterUUID = "-"
-
-                # Get Placement Details
-                gflagFile = os.path.join(nodeDir, "tserver", "conf", "server.conf")
-                if os.path.exists(gflagFile):
-                    with open(gflagFile, "r") as f:
-                        for line in f:
-                            if line.__contains__("placement_cloud"):
-                                cloud = line.split("=")[1].strip()
-                            if line.__contains__("placement_region"):
-                                region = line.split("=")[1].strip()
-                            if line.__contains__("placement_zone"):
-                                zone = line.split("=")[1].strip()
-                        placement = cloud + "." + region + "." + zone
-                else:
-                    placement = "-"
-
-                # Populate the node details
-                nodeDetails[node] = {}
-                nodeDetails[node]["tserverUUID"] = tserverUUID
-                nodeDetails[node]["masterUUID"] = masterUUID
-                nodeDetails[node]["placement"] = placement
-                nodeDetails[node]["runningOnMachine"] = runningOnMachine
-                nodeDetails[node]["NumTablets"] = numTablets
-    elif getDeploymentType(dirPaths) == "k8s":
-        tserversList, mastersList = getTserversMastersList(dirPaths)
-        nodeList = set(tserversList + mastersList)
-        print(nodeList)
-        for node in nodeList:
+    tserverList, masterList = getTserversMastersList(dirPaths)
+    nodeList = set(tserverList + masterList)
+    for node in nodeList:
+        nodeDir= getNodeDirectory(node)
+        if os.path.exists(nodeDir):
             # Get the number of tablets
-            # Get the consensus_meta directory
-            for dirPath in dirPaths:
-                for root, dirs, files in os.walk(dirPath):
-                    if dirs.__contains__("consensus_meta"):
-                        consensusMetaDir = os.path.join(root, "consensus_meta")
-                        break
-            if consensusMetaDir:
-                # Get the number of files (not directories) in the consensus_meta/yb-tserver-$n.tar.gz
-                if os.path.exists(consensusMetaDir + "/" + node + ".tar.gz"):
-                    with tarfile.open(consensusMetaDir + "/" + node + ".tar.gz", "r:gz") as tar:
-                        numTablets = len([member for member in tar.getmembers() if member.isfile()])
-                else:
-                    numTablets = 0
+            tabletMeta = os.path.join(nodeDir,"tserver", "tablet-meta")
+            if os.path.exists(tabletMeta):
+                numTablets = len(os.listdir(tabletMeta))
             else:
                 numTablets = 0
-                
+            
             # Get the tserver UUID
-            for dirPath in dirPaths:
-                for root, dirs, files in os.walk(dirPath):
-                    if dirs.__contains__("instance"):
-                        instanceDir = os.path.join(root, "instance")
-                        break
-            if instanceDir:
-                with tarfile.open(instanceDir + "/" + node + ".tar.gz", "r:gz") as tar:
-                    tar.extractall("/tmp")
-                tserverInstanceFile = "/tmp/tserver" + "/instance"
+            if os.path.exists(os.path.join(nodeDir, "tserver")):
+                tserverInstanceFile = os.path.join(nodeDir, "tserver", "instance")
                 if os.path.exists(tserverInstanceFile):
                     raw_data = os.popen("yb-pbc-dump " + tserverInstanceFile).readlines()
                     for line in raw_data:
                         if line.startswith("uuid"):
                             tserverUUID = line.split(":")[1].strip().replace('"','')
                         if line.startswith("format_stamp"):
-                            runningOnMachine = line.split(" ")[-1].strip().replace('"','')
-                    os.remove(tserverInstanceFile)
+                            tserverRunningOnMachine = line.split(" ")[-1].strip().replace('"','')
                 else:
                     tserverUUID = "-"
-                    runningOnMachine = "-"
+                    tserverRunningOnMachine = "-"
             else:
                 tserverUUID = "-"
-                runningOnMachine = "-"
+                tserverRunningOnMachine = "-"
             
             # Get the master UUID
-            for dirPath in dirPaths:
-                for root, dirs, files in os.walk(dirPath):
-                    if dirs.__contains__("instance"):
-                        instanceDir = os.path.join(root, "instance")
-                        break
-            if instanceDir:
-                with tarfile.open(instanceDir + "/" + node + ".tar.gz", "r:gz") as tar:
-                    tar.extractall("/tmp")
-                masterInstanceFile = "/tmp/master" + "/instance"
+            if os.path.exists(os.path.join(nodeDir, "master")):
+                masterInstanceFile = os.path.join(nodeDir, "master", "instance")
                 if os.path.exists(masterInstanceFile):
                     raw_data = os.popen("yb-pbc-dump " + masterInstanceFile).readlines()
                     for line in raw_data:
                         if line.startswith("uuid"):
                             masterUUID = line.split(":")[1].strip().replace('"','')
-                            print("uuid" + masterUUID)
                         if line.startswith("format_stamp"):
-                            runningOnMachine = line.split(" ")[-1].strip().replace('"','')
-                            print(runningOnMachine)
-                    os.remove(masterInstanceFile)
+                            masterRunningOnMachine = line.split(" ")[-1].strip().replace('"','')
                 else:
                     masterUUID = "-"
-                    runningOnMachine = "-"
+                    masterRunningOnMachine = "-"
             else:
                 masterUUID = "-"
-                runningOnMachine = "-"
-            if node.__contains__("master"):
-                tserverUUID = "-"
+                masterRunningOnMachine = "-"
             
+            # Get the running on machine
+            if tserverRunningOnMachine != "-":
+                runningOnMachine = tserverRunningOnMachine
+            elif masterRunningOnMachine != "-":
+                runningOnMachine = masterRunningOnMachine
+            else:
+                runningOnMachine = "-"
+                
             # Get Placement Details
-            #TODO: Get the placement details from the gflags
+            gflagFile = os.path.join(nodeDir, "tserver", "conf", "server.conf")
+            if os.path.exists(gflagFile):
+                with open(gflagFile, "r") as f:
+                    for line in f:
+                        if line.__contains__("placement_cloud"):
+                            cloud = line.split("=")[1].strip()
+                        if line.__contains__("placement_region"):
+                            region = line.split("=")[1].strip()
+                        if line.__contains__("placement_zone"):
+                            zone = line.split("=")[1].strip()
+                    placement = cloud + "." + region + "." + zone
+            else:
+                placement = "-"
+                
             # Populate the node details
             nodeDetails[node] = {}
             nodeDetails[node]["tserverUUID"] = tserverUUID
             nodeDetails[node]["masterUUID"] = masterUUID
-            nodeDetails[node]["placement"] = "-"
+            nodeDetails[node]["placement"] = placement
             nodeDetails[node]["runningOnMachine"] = runningOnMachine
             nodeDetails[node]["NumTablets"] = numTablets
     return nodeDetails
