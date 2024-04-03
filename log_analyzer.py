@@ -63,8 +63,7 @@ listOfAllFilesWithNoErrors = []
 histogramJSON = {}
 barChartJSONLock = Lock()
 
-# Define lock for writing to file
-writeLock = Lock()
+
 
 # Setup a logger
 logger = logging.getLogger(__name__)
@@ -83,7 +82,10 @@ file_handler = logging.FileHandler(log_file)
 file_handler.setLevel(logging.DEBUG)
 logger.addHandler(file_handler)
 
+# Define lock for writing to file
 lock = Lock()
+
+# Function to write to file
 def writeToFile(file, content):
     lock.acquire()
     with open(file, "a") as f:
@@ -102,10 +104,9 @@ def getTserversMastersList(dirPaths):
                     tserverList.append(instancePath.split("/")[-3])
                 elif instancePath.__contains__("master"):
                     masterList.append(instancePath.split("/")[-3])
-    print("Tservers: ", tserverList)
-    print("Masters: ", masterList)
     return tserverList, masterList
 
+# Function to get the deployment type
 def getDeploymentType(dirPaths):
     for dirPath in dirPaths:
         for root, dirs, files in os.walk(dirPath):
@@ -114,7 +115,8 @@ def getDeploymentType(dirPaths):
             elif "gflags" in dirs:
                 return "k8s"
     return "Unknown"
-            
+
+# Function to get the node directory
 def getNodeDirectory(node):
     for dirPath in dirPaths:
         for root, dirs, files in os.walk(dirPath):
@@ -124,7 +126,6 @@ def getNodeDirectory(node):
     return None
 
 # Function to get the node details
-
 def getNodeDetails():
     nodeDetails = {}
     tserverList, masterList = getTserversMastersList(dirPaths)
@@ -262,10 +263,12 @@ def getArchiveFiles(logDirectory):
                 archievedFiles.append(os.path.join(root,file))
     return archievedFiles
 
+# Function to extract the tar file
 def extractTarFile(file):
     with tarfile.open(file, "r:gz") as tar:
         # extract to filename directory
         tar.extractall(os.path.dirname(file))
+
 # Function to extract all the tar files    
 def extractAllTarFiles(logDirectory):
     extractedFiles = []
@@ -295,7 +298,6 @@ def analyzeLogFiles(logFile, outputFile, start_time=None, end_time=None):
     previousTime = '0101 00:00' # Default time
     logger.info("Analyzing file {}".format(logFile))
     barChartJSON = {}
-    global writeLock
     if logFile.endswith(".gz"):
         logs = gzip.open(logFile, "rt")
     else:
@@ -351,19 +353,18 @@ def analyzeLogFiles(logFile, outputFile, start_time=None, end_time=None):
             ]
         )
     if table:
-        with writeLock:
-            if args.html:
-                formatLogFileForHTMLId = logFile.replace("/", "-").replace(".", "-").replace(" ", "-").replace(":", "-")
-                content = "<h4 id=" + formatLogFileForHTMLId + ">" + logFile + "</h4>"
-                content += tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence"], tablefmt="html")
-                content = content.replace("$line-break$", "<br>").replace("$tab$", "&nbsp;&nbsp;&nbsp;&nbsp;").replace("$start-code$", "<code>").replace("$end-code$", "</code>").replace("$start-bold$", "<b>").replace("$end-bold$", "</b>").replace("$start-italic$", "<i>").replace("$end-italic$", "</i>").replace("<table>", "<table class='sortable' id='main-table'>")
-                writeToFile(outputFile, content)
-            else:
-                formatLogFileForMarkdown = logFile.replace("/", "-").replace(".", "-").replace(" ", "-").replace(":", "-")
-                content = "## " + formatLogFileForMarkdown + "\n\n"
-                content += tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence"], tablefmt="simple_grid")
-                content = content.replace("$line-break$", "\n").replace("$tab$", "\t").replace("$start-code$", "`").replace("$end-code$", "`").replace("$start-bold$", "**").replace("$end-bold$", "**").replace("$start-italic$", "*").replace("$end-italic$", "*")
-                writeToFile(outputFile, content)
+        if args.html:
+            formatLogFileForHTMLId = logFile.replace("/", "-").replace(".", "-").replace(" ", "-").replace(":", "-")
+            content = "<h4 id=" + formatLogFileForHTMLId + ">" + logFile + "</h4>"
+            content += tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence"], tablefmt="html")
+            content = content.replace("$line-break$", "<br>").replace("$tab$", "&nbsp;&nbsp;&nbsp;&nbsp;").replace("$start-code$", "<code>").replace("$end-code$", "</code>").replace("$start-bold$", "<b>").replace("$end-bold$", "</b>").replace("$start-italic$", "<i>").replace("$end-italic$", "</i>").replace("<table>", "<table class='sortable' id='main-table'>")
+            writeToFile(outputFile, content)
+        else:
+            formatLogFileForMarkdown = logFile.replace("/", "-").replace(".", "-").replace(" ", "-").replace(":", "-")
+            content = "## " + formatLogFileForMarkdown + "\n\n"
+            content += tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence"], tablefmt="simple_grid")
+            content = content.replace("$line-break$", "\n").replace("$tab$", "\t").replace("$start-code$", "`").replace("$end-code$", "`").replace("$start-bold$", "**").replace("$end-bold$", "**").replace("$start-italic$", "*").replace("$end-italic$", "*")
+            writeToFile(outputFile, content)
     else:
         listOfFilesWithNoErrors.append(logFile)
     logs.close()
@@ -419,7 +420,6 @@ if __name__ == "__main__":
         logFileList = getLogFilesFromCommandLine()
         # if files are tar files, extract them
         if not args.skip_tar:
-            print(logFileList)
             for file in logFileList:
                 if file.endswith(".tar.gz") or file.endswith(".tgz"):
                     logger.info("Extracting file {}".format(file))
@@ -429,18 +429,14 @@ if __name__ == "__main__":
                     extractAllTarFiles(extractedDir)
                     dirPaths.append(extractedDir)
                     logFileList += getLogFilesFromDirectory(extractedDir)
-        print(logFileList)
     elif args.directory:
         if not args.skip_tar:
             extractAllTarFiles(args.directory)
         logFileList = getLogFilesFromDirectory(args.directory)
         dirPaths.append(args.directory)
-        print(logFileList)
     else:
         logger.info("Please specify a log file, or directory")
         exit(1)
-
-    print(dirPaths)
     
     # Check if log files were found
     if type(logFileList) is not list:
