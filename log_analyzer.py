@@ -611,7 +611,7 @@ if __name__ == "__main__":
     # if hostname == "lincoln" then copy file to directory /tmp
     if os.uname()[1] == "lincoln":
         # Get obsolute path of the args.directory
-        logDir = os.path.abspath(args.directory)
+        logDir = os.path.abspath(args.directory) if args.directory else os.path.abspath(args.log_files[0])
         caseNumber = logDir.split("/")[2]
         os.system("cp " + outputFile + " /home/support/logs_analyzer_dump/" + caseNumber + "-" + outputFile)
         logger.info("⌘+Click 👉👉 http://lincoln:7777/" + caseNumber + "-" + outputFile)
