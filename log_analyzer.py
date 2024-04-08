@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from multiprocessing import Pool, Lock
+from colorama import Fore, Style
 from analyzer_dict import universe_regex_patterns, universe_solutions, pg_regex_patterns, pg_solutions
 from analyzer_lib import *
 from collections import OrderedDict
@@ -13,19 +14,51 @@ import tarfile
 import gzip
 import json
 
+class ColoredHelpFormatter(argparse.RawTextHelpFormatter):
+    def _get_help_string(self, action):
+        return Fore.GREEN + super()._get_help_string(action) + Style.RESET_ALL
 
+    def _format_usage(self, usage, actions, groups, prefix):
+        return Fore.YELLOW + super()._format_usage(usage, actions, groups, prefix) + Style.RESET_ALL
+    
+    def _format_action_invocation(self, action):
+        if not action.option_strings:
+            metavar, = self._metavar_formatter(action, action.dest)(1)
+            return Fore.CYAN + metavar + Style.RESET_ALL
+        else:
+            parts = []
+            if action.nargs == 0:
+                parts.extend(action.option_strings)
+            else:
+                default = action.dest.upper()
+                args_string = self._format_args(action, default)
+                parts.extend(action.option_strings)
+                parts[-1] += ' ' + args_string
+            return Fore.CYAN + ', '.join(parts) + Style.RESET_ALL
+    
+    def _format_action(self, action):
+        parts = super()._format_action(action)
+        return Fore.CYAN + parts + Style.RESET_ALL
+    
+    def _format_text(self, text):
+        return Fore.MAGENTA + super()._format_text(text) + Style.RESET_ALL
+    
+    def _format_args(self, action, default_metavar):
+        return Fore.LIGHTCYAN_EX + super()._format_args(action, default_metavar) + Style.RESET_ALL
+    
 # Command line arguments
-parser = argparse.ArgumentParser(description="Log Analyzer for YugabyteDB logs")
-parser.add_argument("-l", "--log_files", nargs='+', help="List of log file[s]")
+parser = argparse.ArgumentParser(description="Log Analyzer for YugabyteDB logs", formatter_class=ColoredHelpFormatter)
+parser.add_argument("-l", "--log_files", nargs='+', help="List of log file[s] \n Examples:\n\t -l /path/to/logfile1 \n\t -l /path/to/logfile1 /path/to/logfile2 \n\t -l /path/to/log* \n\t -l /path/to/support_bundle.tar.gz")
 parser.add_argument("-d", "--directory", help="Directory containing log files")
 parser.add_argument("-o", "--output", metavar="FILE", dest="output_file", help="Output file name")
 parser.add_argument("-p", "--parallel", metavar="N", dest='numThreads', default=1, type=int, help="Run in parallel mode with N threads")
 parser.add_argument("--skip_tar", action="store_true", help="Skip tar file")
 parser.add_argument("-t", "--from_time", metavar= "MMDD HH:MM", dest="start_time", help="Specify start time in quotes")
 parser.add_argument("-T", "--to_time", metavar= "MMDD HH:MM", dest="end_time", help="Specify end time in quotes")
-parser.add_argument("-s", "--sort-by", dest="sort_by", choices=['NO','LO','FO'], help="Sort by: \n NO = Number of occurrences, \n LO = Last Occurrence,\n FO = First Occurrence(Default)")
+parser.add_argument("-s", "--sort-by", dest="sort_by", choices=['NO','LO','FO'], help="Sort by: \n\t NO = Number of occurrences, \n\t LO = Last Occurrence,\n\t FO = First Occurrence(Default)")
 parser.add_argument("--html", action="store_true", default="true", help="Generate HTML report")
 parser.add_argument("--markdown",action="store_true", help="Generate Markdown report")
+
 args = parser.parse_args()
 
 if args.markdown:
