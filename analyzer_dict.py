@@ -99,12 +99,18 @@ universe_solutions = {
 }
 
 pg_regex_patterns = {
-"latch already owned by": r"latch already owned by"
+"latch already owned by": r"latch already owned by",
+"Connection reset by peer": r"Connection reset by peer"
 }
 pg_solutions = {
 "latch already owned by": """This message is observed when a process is trying to acquire a latch that is already owned by another process. This probably means unexpected backend process termination. The backend was likely terminated without fully cleaning up its resources. This could indicate that the shared memory state between the backends is messed up and so a larger issue may occur in the future. Keeping the cluster around for investigation is recommended. Useful steps to debug this issue are:
 - Check the PostgreSQL logs for any errors or warnings.
 - Check the system logs for any hardware or OS errors. Look for OOM killer, segmenation faults, etc.
 - Contact engineering (specifically Sushant Mishra or Timothy Elgersma) for further assistance.
+""",
+"Connection reset by peer": """This message indicates that the client gone away without closing the connection properly. This could be because of network issues or client application issues.
+- Check the client application logs for any errors.
+- Check if there idle timeout set on the client application or load balancer side.
+- This is concerning if this message is observed frequently or if customer complaints about the connection termination.
 """
 }
