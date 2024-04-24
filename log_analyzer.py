@@ -81,8 +81,7 @@ if args.end_time:
 # 7 days ago from today
 seven_days_ago = datetime.datetime.now() - datetime.timedelta(days=7)
 seven_days_ago = seven_days_ago.strftime("%m%d %H:%M")
-
-# If not start time then set it to today - 3 days in "MMDD HH:MM" format
+# If not start time then set it to today - 7 days in "MMDD HH:MM" format
 start_time = datetime.datetime.strptime(args.start_time, "%m%d %H:%M") if args.start_time else datetime.datetime.strptime(seven_days_ago, "%m%d %H:%M")
 end_time = datetime.datetime.strptime(args.end_time, "%m%d %H:%M") if args.end_time else None
 
@@ -113,7 +112,12 @@ else:
     log_file = 'analyzer.log'
 file_handler = logging.FileHandler(log_file)
 file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
+
+# Log times
+logger.info("Start Time: " + str(start_time))
+logger.info("End Time: " + str(end_time))
 
 # Define lock for writing to file
 lock = Lock()
