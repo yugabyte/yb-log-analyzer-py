@@ -27,7 +27,9 @@ universe_regex_patterns = {
 "Fail of leader detected":r"Fail of leader.*detected",
 "Can't advance the committed index across term boundaries until operations from the current term are replicated":r"Can't advance the committed index across term boundaries until operations from the current term are replicated",
 "Could not locate the leader master":r"Could not locate the leader master",
-"The follower will never be able to catch up":r"The follower will never be able to catch up"
+"The follower will never be able to catch up":r"The follower will never be able to catch up",
+"RequestConsensusVote RPC timed out":r"RequestConsensusVote RPC.*timed out",
+"RequestConsensusVote RPC Connection reset by peer":r"RequestConsensusVote RPC.*Connection reset by peer",
 # Add more log messages here
 }
 universe_solutions = {
@@ -94,13 +96,19 @@ universe_solutions = {
 "The follower will never be able to catch up":"""This means that the follower will never be able to catch up with the leader. This could be because of network issues or tablet server being down or overloaded. In case with tablets, they get removed and load balancer will take care of bootstrapping the new peers. But in case of master, We can follow below KB article.
 
 **KB Article**: [[INTERNAL] YugabyteDB Anywhere Generates an Under-Replicated Master Alert](https://support.yugabyte.com/hc/en-us/articles/10700352325645--INTERNAL-YugabyteDB-Anywhere-Generates-an-Under-Replicated-Master-Alert)
+""",
+"RequestConsensusVote RPC timed out":"""This means that the RequestConsensusVote RPC timed out which means a candidate is requesting votes from the followers and the followers or one of the followers is not able to respond in time. This could be because of network issues or the tablet server being overloaded.
+""",
+"RequestConsensusVote RPC Connection reset by peer":"""This means that the RequestConsensusVote RPC call was reset by the peer which means a candidate is requesting votes from the followers and the followers or one of the followers is terminating the connection before responding. This could be because of network issues or the tablet server being overloaded.
 """
 # Add more solutions here
 }
 
 pg_regex_patterns = {
 "latch already owned by": r"latch already owned by",
-"Connection reset by peer": r"Connection reset by peer"
+"connection reset by peer": r"connection reset by peer",
+"database system is ready to accept connections": r"database system is ready to accept connections"
+# Add more log messages here
 }
 pg_solutions = {
 "latch already owned by": """This message is observed when a process is trying to acquire a latch that is already owned by another process. This probably means unexpected backend process termination. The backend was likely terminated without fully cleaning up its resources. This could indicate that the shared memory state between the backends is messed up and so a larger issue may occur in the future. Keeping the cluster around for investigation is recommended. Useful steps to debug this issue are:
@@ -108,9 +116,12 @@ pg_solutions = {
 - Check the system logs for any hardware or OS errors. Look for OOM killer, segmenation faults, etc.
 - Contact engineering (specifically Sushant Mishra or Timothy Elgersma) for further assistance.
 """,
-"Connection reset by peer": """This message indicates that the client gone away without closing the connection properly. This could be because of network issues or client application issues.
+"connection reset by peer": """This message indicates that the client gone away without closing the connection properly. This could be because of network issues or client application issues.
 - Check the client application logs for any errors.
 - Check if there idle timeout set on the client application or load balancer side.
 - This is concerning if this message is observed frequently or if customer complaints about the connection termination.
+""",
+"database system is ready to accept connections": """This message indicates that the database was restarted and is ready to accept connections. This is an informational message and can be ignored if not observed frequently.
 """
+# Add more solutions here
 }

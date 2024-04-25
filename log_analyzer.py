@@ -352,7 +352,7 @@ def analyzeLogFiles(logFile, outputFile, start_time=None, end_time=None):
     for line in lines:
         timeFromLog = getTimeFromLog(line,previousTime)
         for message, pattern in regex_patterns.items():
-            match = re.search(pattern, line)
+            match = re.search(pattern, line, re.IGNORECASE)
             if match and (not start_time or timeFromLog >= start_time) and (not end_time or timeFromLog <= end_time):
                 # Populate results
                 if message not in results:
