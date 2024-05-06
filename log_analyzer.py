@@ -116,8 +116,10 @@ file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 
 # Log times
-logger.info("Start Time: " + str(start_time))
-logger.info("End Time: " + str(end_time))
+
+logger.info("Start Time: " + str(datetime.datetime.strftime(start_time, "%m%d %H:%M")))
+if end_time:
+    logger.info("End Time: " + str(datetime.datetime.strftime(end_time, "%m%d %H:%M")))
 
 # Define lock for writing to file
 lock = Lock()
