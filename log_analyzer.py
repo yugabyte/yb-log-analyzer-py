@@ -342,7 +342,6 @@ def analyzeLogFiles(logFile, outputFile, start_time=None, end_time=None):
         patternsToAnalyze = args.histogram_mode.split(",")
         for pattern in patternsToAnalyze:
             regex_patterns[pattern] = pattern
-        print("Patterns to analyze: ", regex_patterns)
 
     previousTime = '0101 00:00' # Default time
     logger.info("Analyzing file {}".format(logFile))
