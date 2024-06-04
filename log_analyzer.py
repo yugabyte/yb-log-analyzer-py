@@ -56,6 +56,7 @@ parser.add_argument("--skip_tar", action="store_true", help="Skip tar file")
 parser.add_argument("-t", "--from_time", metavar= "MMDD HH:MM", dest="start_time", help="Specify start time in quotes")
 parser.add_argument("-T", "--to_time", metavar= "MMDD HH:MM", dest="end_time", help="Specify end time in quotes")
 parser.add_argument("-s", "--sort-by", dest="sort_by", choices=['NO','LO','FO'], help="Sort by: \n\t NO = Number of occurrences, \n\t LO = Last Occurrence,\n\t FO = First Occurrence(Default)")
+parser.add_argument("--histogram-mode", dest="histogram_mode", metavar="LIST", help="List of errors to generate histogram")
 parser.add_argument("--html", action="store_true", default="true", help="Generate HTML report")
 parser.add_argument("--markdown",action="store_true", help="Generate Markdown report")
 
@@ -334,6 +335,15 @@ def analyzeLogFiles(logFile, outputFile, start_time=None, end_time=None):
         regex_patterns = pg_regex_patterns
     else:
         regex_patterns = universe_regex_patterns
+    
+    # Check if histogram mode is enabled and set the patterns to analyze
+    if args.histogram_mode:
+        regex_patterns = {}
+        patternsToAnalyze = args.histogram_mode.split(",")
+        for pattern in patternsToAnalyze:
+            regex_patterns[pattern] = pattern
+        print("Patterns to analyze: ", regex_patterns)
+
     previousTime = '0101 00:00' # Default time
     logger.info("Analyzing file {}".format(logFile))
     barChartJSON = {}
@@ -437,9 +447,11 @@ def getVersion():
     return version
    
 def getSolution(message):
+    if args.histogram_mode:
+        return "No solution available for custom patterns"
     return solutions[message]
     
-if __name__ == "__main__":
+if __name__ == "__main__":        
     dirPaths = []
     outputFilePrefix = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
     # Create output file

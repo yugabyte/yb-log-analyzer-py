@@ -30,7 +30,8 @@ universe_regex_patterns = {
 "The follower will never be able to catch up":r"The follower will never be able to catch up",
 "VoteRequest RPC timed out":r"VoteRequest.*timed out",
 "VoteRequest RPC Connection reset by peer":r"VoteRequest.*Connection reset by peer",
-"Call rejected due to memory pressure":r"Call rejected due to memory pressure"
+"Call rejected due to memory pressure":r"Call rejected due to memory pressure",
+"Unable to pick leader":r"Unable to pick leader"
 # Add more log messages here
 }
 universe_solutions = {
@@ -125,7 +126,12 @@ grep "RPC error from VoteRequest() call .*Connection reset by peer" log.log |sed
 """,
 "Call rejected due to memory pressure":"""YugabyteDB uses RPCs to perform operations between nodes. This message indicates that the RPC call was rejected due to memory pressure. This RPC call could be a heartbeat, consensus vote, DocDB Read/Write, etc.
 **KB Article**: [Call rejected due to memory pressure](https://support.yugabyte.com/hc/en-us/articles/4404157217037-Coordinator-node-overloaded-rejecting-connection)
-"""
+""",
+"Unable to pick leader":"""**Description:** This log message indicates that the system was unable to select a leader for a specific tablet. This situation can occur when the current leader is not available or is marked as a follower. If all remaining tablet servers are also marked as followers, the system is unable to select a new leader.
+
+**Impact:** The client is unable to perform operations that require a leader, such as read/writes. This is because read/writes in a distributed consensus system must be routed through the leader. The system will attempt to resolve this situation by forcing a lookup to the master to fetch new consensus configuration information. If a new leader is elected or an existing leader becomes available, the client will be able to continue performing operations. However, until that happens, operations that require a leader will be blocked.
+
+**Recommended Action:** Monitor the system for subsequent logs indicating a new leader has been elected or an existing leader has become available. If the situation persists, it may indicate a problem with the consensus configuration or network connectivity issues between the tablet servers. In such a case, further investigation will be required."""
 # Add more solutions here
 }
 
