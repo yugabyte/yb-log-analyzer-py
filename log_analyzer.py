@@ -431,7 +431,13 @@ def getVersion():
         else:
             logs = open(file, "r")
         try:
-            lines = logs.readlines()[:10]
+            lines = []
+            # Read up to 10 lines efficiently
+            for i in range(10):
+                line = logs.readline()
+                if not line:
+                    break
+                lines.append(line)
         except UnicodeDecodeError as e:
             logger.warning("Skipping file {} as it is not a text file".format(file))
             continue
