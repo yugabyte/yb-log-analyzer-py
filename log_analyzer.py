@@ -444,6 +444,7 @@ def getVersion():
         for line in lines:
             match = re.search(r'version\s+(\d+\.\d+\.\d+\.\d+)', line)
             if match:
+                logger.info("Found version in file: {}".format(file))
                 version = match.group(1)
                 break
         logs.close()
