@@ -494,6 +494,7 @@ if __name__ == "__main__":
         exit(1)
 
     # Get the version of the software
+    logger.info("Getting the version of the software")
     version= getVersion()
     if version != "Unknown":
         if args.html:
@@ -504,6 +505,7 @@ if __name__ == "__main__":
             writeToFile(outputFile, content)
 
     # Add node details to the output file in table format
+    logger.info("Getting the node details")
     if len(getNodeDetails()) > 0:
         # Sum of all tablets
         totalTablets = 0
@@ -534,6 +536,8 @@ if __name__ == "__main__":
                 content += "  - Number of Tablets: " + str(value["NumTablets"]) + "\n"
             writeToFile(outputFile, content)
 
+    # Get the configuration details
+    logger.info("Getting the GFlags")
     masterConfFile = None
     tserverConfFile = None
     for path in dirPaths:
