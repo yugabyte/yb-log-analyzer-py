@@ -84,7 +84,7 @@ seven_days_ago = datetime.datetime.now() - datetime.timedelta(days=7)
 seven_days_ago = seven_days_ago.strftime("%m%d %H:%M")
 # If not start time then set it to today - 7 days in "MMDD HH:MM" format
 start_time = datetime.datetime.strptime(args.start_time, "%m%d %H:%M") if args.start_time else datetime.datetime.strptime(seven_days_ago, "%m%d %H:%M")
-end_time = datetime.datetime.strptime(args.end_time, "%m%d %H:%M") if args.end_time else None
+end_time = datetime.datetime.strptime(args.end_time, "%m%d %H:%M") if args.end_time else datetime.datetime.now()
 
 # Define the lists to store the results
 listOfErrorsInAllFiles = []
@@ -115,12 +115,6 @@ file_handler = logging.FileHandler(log_file)
 file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
-
-# Log times
-
-logger.info("Start Time: " + str(datetime.datetime.strftime(start_time, "%m%d %H:%M")))
-if end_time:
-    logger.info("End Time: " + str(datetime.datetime.strftime(end_time, "%m%d %H:%M")))
 
 # Define lock for writing to file
 lock = Lock()
@@ -329,6 +323,46 @@ def extractAllTarFiles(logDirectory):
         if len(extractedFiles) >= len(getArchiveFiles(logDirectory)):
             extractedAll = True
 
+# Function to skip the files based on the time
+def skipFileBasedOnTime(logFile, start_time, end_time):
+    logger.debug("Checking file {} for time range".format(logFile))
+    if logFile.endswith(".gz"):
+        logs = gzip.open(logFile, "rt")
+    else:
+        logs = open(logFile, "r")
+    try:
+        # Read first 10 lines
+        for i in range(10):
+            line = logs.readline()
+            if not line:
+                break
+            logStartsAt = getTimeFromLog(line,'0101 00:00')
+            logger.debug("Log starts at: {}".format(logStartsAt))
+            break
+        # Read last 10 lines
+        logs.seek(0, 2)
+        # Check if the file filesize is less than 4096 bytes
+        if logs.tell() < 4096:
+            logger.debug("File {} is less than 4096 bytes. No need to skip".format(logFile))
+            return False
+        logs.seek(logs.tell() - 4096, 0) 
+        lines = logs.readlines()
+        for line in reversed(lines):
+            logEndsAt = getTimeFromLog(line, '1231 23:59')
+            logger.debug("Log ends at: {}".format(logEndsAt))
+            break
+        logs.close()
+        if logStartsAt > end_time or logEndsAt < start_time:
+            logger.info("Skipping file {} as it is outside the time range".format(logFile))
+            return True
+        else:
+            logger.debug("file {} is within the time range, starting at {} and ending at {}".format(logFile, logStartsAt, logEndsAt))
+            return False
+    except UnicodeDecodeError as e:
+        logger.warning("Skipping file {} as it is not a text file".format(logFile))
+        return True
+    
+
 # Function to analyze the log files                
 def analyzeLogFiles(logFile, outputFile, start_time=None, end_time=None):
     if logFile.__contains__("postgresql"):
@@ -362,9 +396,13 @@ def analyzeLogFiles(logFile, outputFile, start_time=None, end_time=None):
     results = {}
     for line in lines:
         timeFromLog = getTimeFromLog(line,previousTime)
+        # Continue with next file if the time is outside the range
+        if timeFromLog > end_time:
+            logger.debug("Skipping further analysis of file {} as it is outside the time range at {}".format(logFile, timeFromLog.strftime('%m%d %H:%M')))
+            return listOfErrorsInFile, listOfFilesWithNoErrors, barChartJSON
         for message, pattern in regex_patterns.items():
             match = re.search(pattern, line, re.IGNORECASE)
-            if match and (not start_time or timeFromLog >= start_time) and (not end_time or timeFromLog <= end_time):
+            if match:
                 # Populate results
                 if message not in results:
                     results[message] = {
@@ -606,6 +644,8 @@ if __name__ == "__main__":
             writeToFile(outputFile, content)
     
     logger.info("Number of files to analyze:" + str(len(logFileList)))
+    # Remove files that are outside the time range
+    logFileList = [file for file in logFileList if not skipFileBasedOnTime(file, start_time, end_time)]
     # Analyze log files
     pool = Pool(processes=args.numThreads)
     for listOfErrorsInFile, listOfFilesWithNoErrors, barChartJSON in pool.starmap(analyzeLogFiles, [(file, outputFile, start_time, end_time) for file in logFileList]):
