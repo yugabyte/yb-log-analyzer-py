@@ -52,13 +52,9 @@ universe_solutions = {
 "Operation memory consumption has exceeded its limit": """We have an operation memory limit set to 1024 MB (Default) per tablet using `tablet_operation_memory_limit_mb`. We hit this issue if we have a hot shard and we keep hitting the same shard at a time at full throttle rather than spreading the workload.
 **Useful Commands**:
 
-- Get the list of tablets hitting this issue. This sorts the tablet IDs and removes duplicates, providing you with a list of unique tablet IDs.
+- Get the list of tablets hitting this issue with the count of occurrences.
 
-`zgrep -o -E 'tablet: [a-f0-9]+' <log file name> | awk '{print $2}' | sort -u`
-
-- You can also just count the uniq tablets affected and show the count ob tablets.
-
-    `zgrep -o -E 'tablet: [a-f0-9]+' <log file name> | awk '{print $2}' | sort | uniq -c`
+`zgrep -E "operation memory consumption.*has exceeded its limit" $log_file_name |grep -o -E 'tablet [a-f0-9]+' |awk '{print $2}' | sort | uniq -c |sort -u`
 
 """,
 "Too big clock skew is detected": """This error indicates the nodes running tserver/master process are having clock skew outside of an acceptable range. Clock skew and clock drift can lead to significant consistency issues and should be fixed as soon as possible.

@@ -327,7 +327,11 @@ def extractAllTarFiles(logDirectory):
 def skipFileBasedOnTime(logFile, start_time, end_time):
     logger.debug("Checking file {} for time range".format(logFile))
     if logFile.endswith(".gz"):
-        logs = gzip.open(logFile, "rt")
+        try:
+            logs = gzip.open(logFile, "rt")
+        except EOFError:
+            logger.warning("Got EOF Exception while reading file {}, skipping the file".format(logFile))
+            return True
     else:
         logs = open(logFile, "r")
     try:
@@ -381,7 +385,11 @@ def analyzeLogFiles(logFile, outputFile, start_time=None, end_time=None):
     logger.info("Analyzing file {}".format(logFile))
     barChartJSON = {}
     if logFile.endswith(".gz"):
-        logs = gzip.open(logFile, "rt")
+        try:
+            logs = gzip.open(logFile, "rt")
+        except EOFError:
+            logger.warning("Got EOF Exception while reading file {}, skipping the file".format(logFile))
+            return listOfErrorsInFile, listOfFilesWithNoErrors, barChartJSON
     else:
         logs = open(logFile, "r")
     try:
@@ -465,7 +473,11 @@ def getVersion():
     version = "Unknown"
     for file in files:
         if file.endswith('.gz'):
-            logs = gzip.open(file, "rt")
+            try:
+                logs = gzip.open(file, "rt")
+            except EOFError:
+                logger.warning("Got EOF Exception while reading file {}, skipping the file".format(file))
+                continue
         else:
             logs = open(file, "r")
         try:
