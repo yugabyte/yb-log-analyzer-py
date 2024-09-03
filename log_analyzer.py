@@ -365,6 +365,10 @@ def skipFileBasedOnTime(logFile, start_time, end_time):
     except UnicodeDecodeError as e:
         logger.warning("Skipping file {} as it is not a text file".format(logFile))
         return True
+    except Exception as e:
+        logger.warning("Problem occured while reading the file: {}".format(logFile))
+        logger.error(e)
+        return True
     
 
 # Function to analyze the log files                
