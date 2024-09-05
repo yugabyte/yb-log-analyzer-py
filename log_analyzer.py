@@ -511,7 +511,30 @@ def getSolution(message):
         return "No solution available for custom patterns"
     return solutions[message]
     
-if __name__ == "__main__":        
+if __name__ == "__main__":
+    cmdLineOptions = vars(args)
+    logger.info("Command line options: {}".format(cmdLineOptions))
+    currentDir = os.getcwd()
+    # Add cmdLineOptions and currentDir htmlFooter
+    cmdLineDetails = """<h2 id=command-line-options> Command Line Options </h2>
+                        <table>
+                        <tr>
+                            <th>Command Line Options</th>
+                            <th>Value</th>
+                        </tr>"""
+    for key, value in cmdLineOptions.items():
+        cmdLineDetails += f"""
+                        <tr>
+                            <td>{key}</td>
+                            <td>{str(value)}</td>
+                        </tr>"""
+    cmdLineDetails += f"""
+                        <tr>
+                            <td>Current Directory</td>
+                            <td>{currentDir}</td>
+                        </tr>
+                    </table>"""
+    htmlFooter = cmdLineDetails + htmlFooter
     dirPaths = []
     outputFilePrefix = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
     # Create output file
