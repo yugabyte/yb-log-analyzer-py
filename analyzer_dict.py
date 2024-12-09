@@ -31,7 +31,9 @@ universe_regex_patterns = {
 "VoteRequest RPC timed out":r"VoteRequest.*timed out",
 "VoteRequest RPC Connection reset by peer":r"VoteRequest.*Connection reset by peer",
 "Call rejected due to memory pressure":r"Call rejected due to memory pressure",
-"Unable to pick leader":r"Unable to pick leader"
+"Unable to pick leader":r"Unable to pick leader",
+"Time spent Fsync log took a long time":r"Time spent Fsync log took a long time",
+"Time spent Append to log took a long time":r"Time spent Append to log took a long time",
 # Add more log messages here
 }
 universe_solutions = {
@@ -127,7 +129,11 @@ grep "RPC error from VoteRequest() call .*Connection reset by peer" log.log |sed
 
 **Impact:** The client is unable to perform operations that require a leader, such as read/writes. This is because read/writes in a distributed consensus system must be routed through the leader. The system will attempt to resolve this situation by forcing a lookup to the master to fetch new consensus configuration information. If a new leader is elected or an existing leader becomes available, the client will be able to continue performing operations. However, until that happens, operations that require a leader will be blocked.
 
-**Recommended Action:** Monitor the system for subsequent logs indicating a new leader has been elected or an existing leader has become available. If the situation persists, it may indicate a problem with the consensus configuration or network connectivity issues between the tablet servers. In such a case, further investigation will be required."""
+**Recommended Action:** Monitor the system for subsequent logs indicating a new leader has been elected or an existing leader has become available. If the situation persists, it may indicate a problem with the consensus configuration or network connectivity issues between the tablet servers. In such a case, further investigation will be required.""",
+"Time spent Fsync log took a long time":"""This message is observed when the time spent fsync log took a long time. This could be because of slow disk or load on the system. If number of occurrences of this message is high, then we need to check the disk performance.
+
+This logs gives additional information time like time spent at user level, system level, and real time. This can be used to identify if the issue is with the disk or the system. If the time spent at user level is high, then it is because of the application. If the time spent at system level is high, then it is because of the kernel which could be due to high load on the system. If the time spent at real time is high, then it is because of the disk.""",
+"Time spent Append to log took a long time":"""This message is observed when the time spent append to log took a long time. This means consensus log appends are slow. This could be because of slow disk or load on the system. If number of occurrences of this message is high, then we need to check the disk performance."""
 # Add more solutions here
 }
 
