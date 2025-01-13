@@ -137,6 +137,7 @@ This logs gives additional information time like time spent at user level, syste
 # Add more solutions here
 }
 
+# Postgres log messages
 pg_regex_patterns = {
 "latch already owned by": r"latch already owned by",
 "connection reset by peer": r"connection reset by peer",
@@ -157,4 +158,14 @@ pg_solutions = {
 "database system is ready to accept connections": """This message indicates that the database was restarted and is ready to accept connections. This is an informational message and can be ignored if not observed frequently.
 """
 # Add more solutions here
+}
+
+# Backup and Restore log messages
+backup_restore_regex_patterns = {
+    "Couldn't connect to server": r"Couldn't connect to server",
+    "Cloud config verification failed": r"Cloud config verification failed"
+}
+backup_restore_solutions = {
+    "Couldn't connect to server": """This message is observed when the backup/restore process is not able to connect to the server. This could be because of network issues or the server is down. Check the server status and network connectivity."""
+    
 }

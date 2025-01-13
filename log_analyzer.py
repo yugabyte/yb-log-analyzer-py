@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from multiprocessing import Pool, Lock
 from colorama import Fore, Style
-from analyzer_dict import universe_regex_patterns, universe_solutions, pg_regex_patterns, pg_solutions
+from analyzer_dict import universe_regex_patterns, universe_solutions, pg_regex_patterns, pg_solutions, backup_restore_regex_patterns, backup_restore_solutions
 from analyzer_lib import *
 from collections import OrderedDict
 import logging
@@ -55,6 +55,7 @@ parser.add_argument("-p", "--parallel", metavar="N", dest='numThreads', default=
 parser.add_argument("--skip_tar", action="store_true", help="Skip tar file")
 parser.add_argument("-t", "--from_time", metavar= "MMDD HH:MM", dest="start_time", help="Specify start time in quotes")
 parser.add_argument("-T", "--to_time", metavar= "MMDD HH:MM", dest="end_time", help="Specify end time in quotes")
+parser.add_argument("-m", "--mode", choices=['universe', 'postgres', 'backup_restore', 'tserver', 'master'], help="Mode: \n\t universe = Universe logs (Default) \n\t\t - tservers \n\t\t - masters \n\t\t - Postgres, \n\t postgres = Postgres logs, \n\t backup_restore = Backup and Restore logs, \n\t tserver = TServer logs, \n\t master = Master logs", default="universe")
 parser.add_argument("-s", "--sort-by", dest="sort_by", choices=['NO','LO','FO'], help="Sort by: \n\t NO = Number of occurrences, \n\t LO = Last Occurrence,\n\t FO = First Occurrence(Default)")
 parser.add_argument("--histogram-mode", dest="histogram_mode", metavar="LIST", help="List of errors to generate histogram \n Example: --histogram-mode 'error1,error2,error3'")
 parser.add_argument("--html", action="store_true", default="true", help="Generate HTML report")
@@ -266,7 +267,7 @@ def getLogFilesFromDirectory(logDirectory):
     logFiles = []
     for root, dirs, files in os.walk(logDirectory):
         for file in files:
-            if file.__contains__("INFO") or file.__contains__("postgres") and file[0] != ".":
+            if file.__contains__("INFO") or file.__contains__("postgres") or file.__contains__("controller") or file.__contains__("application")and file[0] != ".":
                 logFiles.append(os.path.join(root, file))
     return logFiles
 
@@ -369,15 +370,40 @@ def skipFileBasedOnTime(logFile, start_time, end_time):
         logger.warning("Problem occured while reading the file: {}".format(logFile))
         logger.error(e)
         return True
-    
+
+def filterLogFiles(logFiles, mode):
+    filteredFiles = []
+    if mode == "universe":
+        filteredFiles = [file for file in logFiles if file.__contains__("yb-tserver") or file.__contains__("yb-master") or file.__contains__("postgresql") and file.__contains__("INFO")]
+    elif mode == "postgres":
+        filteredFiles = [file for file in logFiles if file.__contains__("postgresql")]
+    elif mode == "backup_restore":
+        filteredFiles = [file for file in logFiles if file.__contains__("controller") or file.__contains__("application")]
+    elif mode == "tserver":
+        filteredFiles = [file for file in logFiles if file.__contains__("yb-tserver")]
+    elif mode == "master":
+        filteredFiles = [file for file in logFiles if file.__contains__("yb-master")]
+    return filteredFiles
+
+def getRegexPatternsAndSolutions(mode):
+    if mode == "universe":
+        regex_patterns = universe_regex_patterns
+        solutions = universe_solutions
+    elif mode == "postgres":
+        regex_patterns = pg_regex_patterns
+        solutions = pg_solutions
+    elif mode == "backup_restore":
+        regex_patterns = backup_restore_regex_patterns
+        solutions = backup_restore_solutions
+    elif mode == "tserver" or mode == "master":
+        regex_patterns = universe_regex_patterns
+        solutions = universe_solutions
+    return regex_patterns, solutions
 
 # Function to analyze the log files                
-def analyzeLogFiles(logFile, outputFile, start_time=None, end_time=None):
+def analyzeLogFiles(logFile, outputFile, regex_patterns, start_time=None, end_time=None):
     if logFile.__contains__("postgresql"):
         regex_patterns = pg_regex_patterns
-    else:
-        regex_patterns = universe_regex_patterns
-    
     # Check if histogram mode is enabled and set the patterns to analyze
     if args.histogram_mode:
         regex_patterns = {}
@@ -512,6 +538,7 @@ def getSolution(message):
     return solutions[message]
     
 if __name__ == "__main__":
+    regex_patterns, solutions = getRegexPatternsAndSolutions(args.mode)
     cmdLineOptions = vars(args)
     logger.info("Command line options: {}".format(cmdLineOptions))
     currentDir = os.getcwd()
@@ -682,12 +709,15 @@ if __name__ == "__main__":
                     content += "  - TServer: " + gflags["tserver"].get(flag, "-") + "\n"
             writeToFile(outputFile, content)
     
+    
+    # Filter log files based on the mode
+    logFileList = filterLogFiles(logFileList, args.mode)
     logger.info("Number of files to analyze:" + str(len(logFileList)))
     # Remove files that are outside the time range
     logFileList = [file for file in logFileList if not skipFileBasedOnTime(file, start_time, end_time)]
     # Analyze log files
     pool = Pool(processes=args.numThreads)
-    for listOfErrorsInFile, listOfFilesWithNoErrors, barChartJSON in pool.starmap(analyzeLogFiles, [(file, outputFile, start_time, end_time) for file in logFileList]):
+    for listOfErrorsInFile, listOfFilesWithNoErrors, barChartJSON in pool.starmap(analyzeLogFiles, [(file, outputFile, regex_patterns, start_time, end_time) for file in logFileList]):
         listOfErrorsInAllFiles = list(set(listOfErrorsInAllFiles + listOfErrorsInFile))
         listOfAllFilesWithNoErrors = list(set(listOfAllFilesWithNoErrors + listOfFilesWithNoErrors))
         for key, value in barChartJSON.items():
