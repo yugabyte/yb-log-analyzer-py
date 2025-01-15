@@ -378,7 +378,7 @@ def filterLogFiles(logFiles, mode):
     elif mode == "postgres":
         filteredFiles = [file for file in logFiles if file.__contains__("postgresql")]
     elif mode == "backup_restore":
-        filteredFiles = [file for file in logFiles if file.__contains__("controller") or file.__contains__("application")]
+        filteredFiles = [file for file in logFiles if file.__contains__("controller") or file.__contains__("application") or file.__contains__("yb-master")]
     elif mode == "tserver":
         filteredFiles = [file for file in logFiles if file.__contains__("yb-tserver")]
     elif mode == "master":

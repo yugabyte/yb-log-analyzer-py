@@ -162,12 +162,16 @@ pg_solutions = {
 
 # Backup and Restore log messages
 backup_restore_regex_patterns = {
-    "Couldn't connect to server": r"Couldn't connect to server",
     "Cloud config verification failed": r"Cloud config verification failed",
-    "Invalid Table Created": r"Invalid created PGSQL_TABLE_TYPE table"
+    "Invalid Table Created": r"Invalid created PGSQL_TABLE_TYPE table",
+    "ImportTableEntry: YSQL table not found": r"ImportTableEntry: YSQL table not found",
+    "Table with identifier not found": r"Table with identifier.*not found",
+    "Table collected twice": r"Table collected twice"
 }
 backup_restore_solutions = {
-    "Couldn't connect to server": """This message is observed when the backup/restore process is not able to connect to the server. This could be because of network issues or the server is down. Check the server status and network connectivity.""",
     "Cloud config verification failed": """This message is observed when the cloud configuration is not correct. Check the cloud configuration and try again. In case of NFS, check if the NFS is mounted on all DB nodes, check the permissions and network issues.""",
-    "Invalid Table Created": """There are multiple reasons for this error. All the known reasons are listed in [this document](https://docs.google.com/document/d/1ktEJoKeVLTDZfklfb3tr6fJE1JHVBOK2Qmw97Cglras/edit?tab=t.0#heading=h.fgjuzomst2kv)"""
+    "Invalid Table Created": """There are multiple reasons for this error which causes restore to fail. All the known reasons are listed in [this document](https://docs.google.com/document/d/1ktEJoKeVLTDZfklfb3tr6fJE1JHVBOK2Qmw97Cglras/edit?tab=t.0#heading=h.fgjuzomst2kv)""",
+    "ImportTableEntry: YSQL table not found": """This message is observed in master logs when the table is not found in YSQL metadata which causes restore to fail. This issue appears due to DDL atomicity issues. You can find mitigation steps in [this document](https://docs.google.com/document/d/1ktEJoKeVLTDZfklfb3tr6fJE1JHVBOK2Qmw97Cglras/edit?tab=t.0#heading=h.fgjuzomst2kv)""",
+    "Table with identifier not found": """This message is observed in application logs when the drop table operation is failed which causes backup to fail. You can find mitigation steps in [this document](https://docs.google.com/document/d/1ktEJoKeVLTDZfklfb3tr6fJE1JHVBOK2Qmw97Cglras/edit?tab=t.0#heading=h.fgjuzomst2kv)""",
+    "Table collected twice": """This message is observed in master logs when the table is collected twice due to catalog index inconsistency which causes restore to fail. You can find mitigation steps in [this document](https://docs.google.com/document/d/1ktEJoKeVLTDZfklfb3tr6fJE1JHVBOK2Qmw97Cglras/edit?tab=t.0#heading=h.fgjuzomst2kv)"""
 }
