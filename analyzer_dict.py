@@ -163,7 +163,7 @@ pg_solutions = {
 # Backup and Restore log messages
 backup_restore_regex_patterns = {
     "Couldn't connect to server": r"Couldn't connect to server",
-    "Cloud config verification failed": r"Cloud config verification failed"
+    "Cloud config verification failed": r"Cloud config verification failed",
     "Invalid Table Created": r"Invalid created PGSQL_TABLE_TYPE table"
 }
 backup_restore_solutions = {
