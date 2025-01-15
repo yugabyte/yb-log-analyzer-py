@@ -164,8 +164,10 @@ pg_solutions = {
 backup_restore_regex_patterns = {
     "Couldn't connect to server": r"Couldn't connect to server",
     "Cloud config verification failed": r"Cloud config verification failed"
+    "Invalid Table Created": r"Invalid created PGSQL_TABLE_TYPE table"
 }
 backup_restore_solutions = {
-    "Couldn't connect to server": """This message is observed when the backup/restore process is not able to connect to the server. This could be because of network issues or the server is down. Check the server status and network connectivity."""
-    
+    "Couldn't connect to server": """This message is observed when the backup/restore process is not able to connect to the server. This could be because of network issues or the server is down. Check the server status and network connectivity.""",
+    "Cloud config verification failed": """This message is observed when the cloud configuration is not correct. Check the cloud configuration and try again. In case of NFS, check if the NFS is mounted on all DB nodes, check the permissions and network issues.""",
+    "Invalid Table Created": """There are multiple reasons for this error. All the known reasons are listed in [this document](https://docs.google.com/document/d/1ktEJoKeVLTDZfklfb3tr6fJE1JHVBOK2Qmw97Cglras/edit?tab=t.0#heading=h.fgjuzomst2kv)"""
 }
