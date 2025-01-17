@@ -24,7 +24,7 @@ universe_regex_patterns = {
 "Too big clock skew is detected":r"Too big clock skew is detected",
 "Stopping writes because we have immutable memtables":r"Stopping writes because we have \d+ immutable memtables",
 "UpdateConsensus requests dropped due to backpressure":r"UpdateConsensus request.*dropped due to backpressure",
-"Fail of leader detected":r"Fail of leader.*detected",
+"Fail or stepdown of leader detected":r"Fail.*of leader.*detected",
 "Can't advance the committed index across term boundaries until operations from the current term are replicated":r"Can't advance the committed index across term boundaries until operations from the current term are replicated",
 "Could not locate the leader master":r"Could not locate the leader master",
 "The follower will never be able to catch up":r"The follower will never be able to catch up",
@@ -37,8 +37,9 @@ universe_regex_patterns = {
 # Add more log messages here
 }
 universe_solutions = {
-"Soft memory limit exceeded": """Memory utilization has reached `memory_limit_soft_percentage` (default 85%) and system has started throttling read/write operations.
+"Soft memory limit exceeded": """Memory utilization has exceeded the `memory_limit_soft_percentage` threshold (default: 85%). As a result, the system has started throttling read and write operations to control memory usage and maintain system stability.  
 
+This throttling mechanism ensures smoother write latencies and prevents the system from reaching critical memory levels that could lead to instability or crashes. However, due to throttling, users may experience higher latencies in their queries. 
 **NOTE**
 - If the number of occurrences of this message is low or happenings once in a while, then it is not a problem. We can ignore this message. It just indicates the busy system at that time.
 **KB Article**: [How to optimize and resolve common memory errors in Yugabyte](https://support.yugabyte.com/hc/en-us/articles/360058731252-How-to-optimize-and-resolve-common-memory-errors-in-Yugabyte)
@@ -72,8 +73,25 @@ universe_solutions = {
 "UpdateConsensus requests dropped due to backpressure":"""This message is generally observed when a tablet server is overloaded with UpdateConsensus requests and is not able to process the requests at the same rate as they are coming. This could also happen when there are a huge number of tablets created on the tablet server.
 **KB Article**: [Coordinator node overloaded rejecting connection](https://support.yugabyte.com/hc/en-us/articles/4404157217037-Coordinator-node-overloaded-rejecting-connection)
 """,
-"Fail of leader detected":"""This means that the failure of the leader is detected. More info to be added
-""",
+"Fail or stepdown of leader detected":"""Leader failure or stepdown detected by the tablet:  
+
+1. **Leader Failure**  
+The tablet peer considers a leader to have failed under the following conditions:  
+- No heartbeat is received from the leader within a defined time interval.  
+- The failure detection is determined using the formula:  
+  `leader_failure_max_missed_heartbeat_periods × raft_heartbeat_interval_ms`.  
+  If this duration passes without heartbeats, the leader is marked as failed.  
+
+Possible causes:  
+- Network connectivity issues.  
+- The tablet server being down or overloaded.  
+
+2. **Leader Stepdown**  
+Leader stepdown can occur for the following reasons:  
+- Administrative commands, such as using the `yb-admin leader_stepdown` command.  
+- As part of routine rebalancing operations by the load balancer process.  
+
+Leader stepdowns in these cases are normal and generally not a cause for concern.""",
 "Can't advance the committed index across term boundaries until operations from the current term are replicated":"""This means that the leader is not able to advance the committed index across term boundaries until operations from the current term are replicated.
 
 **NOTE**
