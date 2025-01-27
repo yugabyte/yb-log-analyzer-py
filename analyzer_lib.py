@@ -381,6 +381,7 @@ barChart2 = """
                     }
                 }],
                 yAxes: [{
+                    type: 'logarithmic',
                     scaleLabel: {
                         display: true,
                         labelString: 'Number of Events'
