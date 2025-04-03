@@ -161,6 +161,8 @@ def getNodeDirectory(node):
 
 # Function to get the node details
 def getNodeDetails():
+    tserverRunningOnMachine = tserverUUID = masterUUID = placement = runningOnMachine = numTablets = ''  # PV 20250403 - Variable was not initialized.
+
     nodeDetails = {}
     tserverList, masterList = getTserversMastersList(dirPaths)
     nodeList = set(tserverList + masterList)
