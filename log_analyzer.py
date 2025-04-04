@@ -1,8 +1,19 @@
 #!/usr/bin/env python3
 from multiprocessing import Pool, Lock
 from colorama import Fore, Style
-from analyzer_dict import universe_regex_patterns, universe_solutions, pg_regex_patterns, pg_solutions
-from analyzer_lib import *
+from multiprocessing import Pool, Lock
+from colorama import Fore, Style
+from analyzer_lib import (
+    universe_regex_patterns,
+    universe_solutions,
+    pg_regex_patterns,
+    pg_solutions,
+    solutions,
+    htmlHeader,
+    htmlFooter,
+    barChart1,
+    barChart2,
+)
 from collections import OrderedDict
 import logging
 import datetime
