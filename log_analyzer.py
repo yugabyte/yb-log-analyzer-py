@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 from multiprocessing import Pool, Lock
 from colorama import Fore, Style
-from multiprocessing import Pool, Lock
-from colorama import Fore, Style
 from analyzer_lib import (
     universe_regex_patterns,
     universe_solutions,
@@ -70,7 +68,6 @@ parser.add_argument("-s", "--sort-by", dest="sort_by", choices=['NO','LO','FO'],
 parser.add_argument("--histogram-mode", dest="histogram_mode", metavar="LIST", help="List of errors to generate histogram \n Example: --histogram-mode 'error1,error2,error3'")
 parser.add_argument("--html", action="store_true", default="true", help="Generate HTML report")
 parser.add_argument("--markdown",action="store_true", help="Generate Markdown report")
-
 args = parser.parse_args()
 
 if args.markdown:
