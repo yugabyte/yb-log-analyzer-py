@@ -1,10 +1,12 @@
 import yaml
+import os
 
 ##############################################################################
 # Read log_conf.yml and parse into patterns/solutions for universe & pg
 ##############################################################################
-with open("log_conf.yml", "r") as f:
-    config = yaml.safe_load(f)
+config_path = os.path.join(os.path.dirname(__file__), "log_conf.yml")
+with open(config_path, "r") as f:
+	config = yaml.safe_load(f)
 
 universe_config = config["universe"]["log_messages"]
 pg_config = config["pg"]["log_messages"]
