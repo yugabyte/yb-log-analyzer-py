@@ -151,7 +151,19 @@ universe:
       pattern: "Time spent Append to log took a long time"
       solution: |
         This message is observed when the time spent append to log took a long time. This means consensus log appends are slow. This could be because of slow disk or load on the system. If number of occurrences of this message is high, then we need to check the disk performance.
-
+    
+    - name: "Number of aborted transactions not cleaned up on account of reaching size limits"
+      pattern: "Number of aborted transactions not cleaned up on account of reaching size limits"
+      solution: |
+        This typically means that we need to run compaction on offending tablets.
+        **Zendesk ticket**: 5416
+      KB: https://support.yugabyte.com/hc/en-us/articles/4404157217037-Coordinator-node-overloaded-rejecting-connection
+      ticket: ZD-5416 
+      first seen version: 2.14
+      fixed in version: 2024.1
+      comments: |
+        Applicable to version 2.14
+        
 pg:
   log_messages:
     - name: "latch already owned by"
