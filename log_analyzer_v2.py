@@ -69,7 +69,6 @@ class ColoredHelpFormatter(argparse.RawTextHelpFormatter):
 
 # Command line arguments
 parser = argparse.ArgumentParser(description="Log Analyzer for YugabyteDB logs", formatter_class=ColoredHelpFormatter)
-parser.add_argument("-l", "--log_files", nargs='+', help="List of log file[s] \n Examples:\n\t -l /path/to/logfile1 \n\t -l /path/to/logfile1 /path/to/logfile2 \n\t -l /path/to/log* \n\t -l /path/to/support_bundle.tar.gz")
 parser.add_argument("-d", "--directory", help="Directory containing log files")
 parser.add_argument("-s","--support_bundle", help="Support bundle file name")
 parser.add_argument("--types", metavar="LIST", help="List of log types to analyze \n Example: --types 'ms,ybc' \n Default: --types 'pg,ts,ms'")
@@ -314,11 +313,6 @@ def extractAllTarFiles(logDirectory):
 
 def getLogFilesToAnalyze():
     logFiles = []
-    if args.log_files:
-        for logFile in args.log_files:
-            if os.path.isfile(logFile):
-                logFiles.append(logFile)
-                return logFiles
     if args.directory:
         if not args.skip_tar:
             extractAllTarFiles(args.directory)
@@ -590,7 +584,11 @@ if __name__ == "__main__":
             
         # Get the node details
         logger.info("Getting node details")
-        nodeDetails = getNodeDetails(logFilesMetadata)
+        try:
+            nodeDetails = getNodeDetails(logFilesMetadata)
+        except Exception as e:
+            logger.error(f"Error getting node details: {e}")
+            nodeDetails = None
         if nodeDetails is not None:
             totalTablets = sum([details["NumTablets"] for details in nodeDetails.values()])
             content = "<h2 id=node-details> Node Details </h2>"
@@ -619,7 +617,11 @@ if __name__ == "__main__":
 
         # Get the gflags
         logger.info("Getting gflags")
-        allGFlags = getGFlags(logFilesMetadata)
+        try:
+            allGFlags = getGFlags(logFilesMetadata)
+        except Exception as e:
+            logger.error(f"Error getting gflags: {e}")
+            allGFlags = {"master": {}, "tserver": {}}
         # Add the gflags to localHagenAIJSON
         hagenAIJSON["gflags"] = {}
         hagenAIJSON["gflags"]["master"] = allGFlags["master"]
@@ -659,35 +661,34 @@ if __name__ == "__main__":
                 else:
                     histogramJSON[key] = value
             # Add the node details to hagenAIJSON
-            if nodeDetails:
-                for node, details in nodeDetails.items():
-                    if node not in hagenAIJSON["nodeDetails"]:
-                        hagenAIJSON["nodeDetails"][node] = {}
-                    for message, messageDetails in details.items():
-                        nodeMessages = hagenAIJSON["nodeDetails"][node]
-
-                        if message not in nodeMessages:
-                            nodeMessages[message] = {}
-
-                        # Update count
-                        nodeMessages[message]["count"] = nodeMessages[message].get("count", 0) + messageDetails.get("count", 0)
-
-                        # Update first_occurrence
-                        if (
-                            "first_occurrence" not in nodeMessages[message]
-                            or messageDetails["first_occurrence"] < nodeMessages[message]["first_occurrence"]
-                        ):
-                            nodeMessages[message]["first_occurrence"] = messageDetails["first_occurrence"]
-
-                        # Update last_occurrence
-                        if (
-                            "last_occurrence" not in nodeMessages[message]
-                            or messageDetails["last_occurrence"] > nodeMessages[message]["last_occurrence"]
-                        ):
-                            nodeMessages[message]["last_occurrence"] = messageDetails["last_occurrence"]
-
-                        # Add or update solution
-                        nodeMessages[message]["solution"] = getSolution(message)
+            try:
+                if nodeDetails:
+                    for node, details in nodeDetails.items():
+                        if node not in hagenAIJSON["nodeDetails"]:
+                            hagenAIJSON["nodeDetails"][node] = {}
+                        for message, messageDetails in details.items():
+                            nodeMessages = hagenAIJSON["nodeDetails"][node]
+                            if message not in nodeMessages:
+                                nodeMessages[message] = {}
+                            # Update count
+                            nodeMessages[message]["count"] = nodeMessages[message].get("count", 0) + messageDetails.get("count", 0)
+                            # Update first_occurrence
+                            if (
+                                "first_occurrence" not in nodeMessages[message]
+                                or messageDetails["first_occurrence"] < nodeMessages[message]["first_occurrence"]
+                            ):
+                                nodeMessages[message]["first_occurrence"] = messageDetails["first_occurrence"]
+                            # Update last_occurrence
+                            if (
+                                "last_occurrence" not in nodeMessages[message]
+                                or messageDetails["last_occurrence"] > nodeMessages[message]["last_occurrence"]
+                            ):
+                                nodeMessages[message]["last_occurrence"] = messageDetails["last_occurrence"]
+                            # Add or update solution
+                            nodeMessages[message]["solution"] = getSolution(message)
+            except Exception as e:
+                logger.error(f"Error getting node details: {e}")
+                nodeDetails = None
         pool.close()
         pool.join()
         if listOfErrorsInAllFiles:
@@ -754,3 +755,25 @@ if __name__ == "__main__":
             print(colorama.Fore.YELLOW + "WARNING: If missing logs are reported and if it is suspicious, please check the logs manually.")
         print("=====================================")
         print(f"Log analysis completed. Output file: {outputFile}")
+        print(f"Log files metadata file: {logFilesMetadataFile}")
+        print(f"HagenAI JSON file: {hagenAIJSONFile}")
+        
+    if os.uname()[1] == "lincoln":
+        logDir = os.path.abspath(args.directory) if args.directory else os.path.abspath(args.log_files[0])
+        caseNumber = logDir.split("/")[2]
+        os.system("cp " + outputFile + " /home/support/logs_analyzer_dump/" + caseNumber + "-" + outputFile)
+        logger.info("⌘+Click 👉👉 http://lincoln:7777/" + caseNumber + "-" + outputFile)
+        listOfFiles = os.listdir("/home/support/logs_analyzer_dump/")
+        content = "<table style='border-collapse: collapse; border: 1px solid black;'>"
+        content += "<tr><td style='border: 1px solid black; padding: 5px;'> Ticket Number </td><td style='border: 1px solid black; padding: 5px;'> Analysis </td></tr>"
+        open("/home/support/logs_analyzer_dump/index.html", "w").write("<h2> List of analyzed files </h2>")
+        for file in listOfFiles:
+            if file.endswith(".html"):
+                caseNumber = file.split("-")[0]
+                content += "<tr><td> " + caseNumber + " </td><td> <a href='" + file + "'>" + file + "</a> </td></tr>"
+        content += "</table>"
+        if os.path.exists("/home/support/logs_analyzer_dump/index.html"):
+            os.remove("/home/support/logs_analyzer_dump/index.html")
+        open("/home/support/logs_analyzer_dump/index.html", "a").write(content)
+    else:
+        logger.info("⌘+Click 👉👉 file://" + os.path.abspath(outputFile) + " to view the analysis")
