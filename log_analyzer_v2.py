@@ -740,9 +740,9 @@ if __name__ == "__main__":
                 isLogMissing = True
         # Master logs
         if "ms" in choosenTypes:
-            missingNodes = [node for node in nodes if not any(node in file for file in logFilesToProcess if logFilesMetadata[file]["logType"] == "yb-master" and logFilesMetadata[file]["nodeName"] == node)]
+            missingNodes = [node for node in nodes if not any(node in file for file in logFilesToProcess if logFilesMetadata[file]["logType"] == "yb-master")]
             if missingNodes:
-                print(colorama.Fore.RED + f"Master logs missing for nodes: {', '.join(missingNodes)}")
+                print(colorama.Fore.RED + f"Master logs missing for nodes: {', '.join(missingNodes)} - Ignore if these are not master nodes")
                 isLogMissing = True
         # Controller logs
         if "ybc" in choosenTypes:
@@ -759,7 +759,7 @@ if __name__ == "__main__":
         print(f"HagenAI JSON file: {hagenAIJSONFile}")
         
     if os.uname()[1] == "lincoln":
-        logDir = os.path.abspath(args.directory) if args.directory else os.path.abspath(args.log_files[0])
+        logDir = os.getcwd()
         caseNumber = logDir.split("/")[2]
         os.system("cp " + outputFile + " /home/support/logs_analyzer_dump/" + caseNumber + "-" + outputFile)
         logger.info("⌘+Click 👉👉 http://lincoln:7777/" + caseNumber + "-" + outputFile)
