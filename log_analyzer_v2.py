@@ -761,19 +761,9 @@ if __name__ == "__main__":
     if os.uname()[1] == "lincoln":
         logDir = os.getcwd()
         caseNumber = logDir.split("/")[2]
-        os.system("cp " + outputFile + " /home/support/logs_analyzer_dump/" + caseNumber + "-" + outputFile)
-        logger.info("⌘+Click 👉👉 http://lincoln:7777/" + caseNumber + "-" + outputFile)
-        listOfFiles = os.listdir("/home/support/logs_analyzer_dump/")
-        content = "<table style='border-collapse: collapse; border: 1px solid black;'>"
-        content += "<tr><td style='border: 1px solid black; padding: 5px;'> Ticket Number </td><td style='border: 1px solid black; padding: 5px;'> Analysis </td></tr>"
-        open("/home/support/logs_analyzer_dump/index.html", "w").write("<h2> List of analyzed files </h2>")
-        for file in listOfFiles:
-            if file.endswith(".html"):
-                caseNumber = file.split("-")[0]
-                content += "<tr><td> " + caseNumber + " </td><td> <a href='" + file + "'>" + file + "</a> </td></tr>"
-        content += "</table>"
-        if os.path.exists("/home/support/logs_analyzer_dump/index.html"):
-            os.remove("/home/support/logs_analyzer_dump/index.html")
-        open("/home/support/logs_analyzer_dump/index.html", "a").write(content)
+        htmlNameOnServer = caseNumber + "-" + outputFile
+        # Copy the output file to the server
+        os.system("cp " + outputFile + " /home/support/logs_analyzer_dump/" + htmlNameOnServer)
+        logger.info("⌘+Click 👉👉 http://lincoln:7778/files/" + htmlNameOnServer)
     else:
         logger.info("⌘+Click 👉👉 file://" + os.path.abspath(outputFile) + " to view the analysis")
