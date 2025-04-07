@@ -378,7 +378,7 @@ def openLogFile(logFile):
         logger.error("Error opening log file {}: {}".format(logFile, e))
         return []
 
-def analyzeLogFile(logFile,outputFile, logFilesMetadata):
+def analyzeLogFile(logFile, outputFile, logFilesMetadata):
     barChartJSON = {}
     results = {}
     nodeName = logFilesMetadata[logFile]["nodeName"]
@@ -392,50 +392,58 @@ def analyzeLogFile(logFile,outputFile, logFilesMetadata):
     else:
         logger.error("Invalid log file type for file {}".format(logFile))
         return listOfErrorsInFile, listOfFilesWithNoErrors, barChartJSON
-    
+
     logger.info("Analyzing log file: {}".format(logFile))
-    previousTime = '0101 00:00' # Default time
-    logLines = openLogFile(logFile)
-    if not logLines:
-        logger.error("Error opening log file: {}".format(logFile))
+    previousTime = '0101 00:00'  # Default time
+
+    # Open the log file and process it line by line
+    try:
+        if logFile.endswith(".gz"):
+            logFileHandle = gzip.open(logFile, "rt")
+        else:
+            logFileHandle = open(logFile, "r")
+    except Exception as e:
+        logger.error("Error opening log file {}: {}".format(logFile, e))
         return listOfErrorsInFile, listOfFilesWithNoErrors, barChartJSON
-    
-    for line in logLines:
-        timeFromLog = getTimeFromLog(line, previousTime)
-        previousTime = timeFromLog.strftime("%m%d %H:%M") # TODO Review this
-        # if end_time > timeFromLog:
-        # #     logger.info("Skipping further analysis for log file {} as the the {} is older than the end time {}".format(logFile, timeFromLog.strftime("%m%d %H:%M"), end_time.strftime("%m%d %H:%M")))
-        #     return listOfErrorsInFile, listOfFilesWithNoErrors, barChartJSON
-        for message, regex in regex_patterns.items():
-            match = re.search(regex, line, re.IGNORECASE)
-            if match:
-                # Populate the results dictionary with the message and its details
-                if message not in results:
-                    results[message] = {
-                        "count": 0,
-                        "first_occurrence": None,
-                        "last_occurrence": None,
-                    }
-                results[message]["count"] += 1
-                time = timeFromLog.strftime("%m%d %H:%M")
-                if results[message]["first_occurrence"] is None:
-                    results[message]["first_occurrence"] = time
-                results[message]["last_occurrence"] = time
-                # Add the message to the list of errors
-                listOfErrorsInFile.append(message)
-                # Add the message to the histogram
-                hour = time[:-3] # Get the hour part
-                barChartJSON.setdefault(message, {})
-                barChartJSON[message].setdefault(hour, 0)
-                barChartJSON[message][hour] += 1
-                # Add node details to the nodeDetails dictionary
-                nodeDetails[nodeName][message] = {}
-                nodeDetails[nodeName][message]["count"] = results[message]["count"]
-                nodeDetails[nodeName][message]["first_occurrence"] = results[message]["first_occurrence"]
-                nodeDetails[nodeName][message]["last_occurrence"] = results[message]["last_occurrence"]
-                nodeDetails[nodeName][message]["solution"] = getSolution(message)
-    
-    # Create table report
+
+    with logFileHandle as f:
+        for line in f:
+            timeFromLog = getTimeFromLog(line, previousTime)
+            previousTime = timeFromLog.strftime("%m%d %H:%M")
+
+            # Skip lines before the start_time
+            if timeFromLog < start_time:
+                continue
+
+            # Stop processing after the end_time
+            if timeFromLog > end_time:
+                break
+
+            for message, regex in regex_patterns.items():
+                match = re.search(regex, line, re.IGNORECASE)
+                if match:
+                    if message not in results:
+                        results[message] = {
+                            "count": 0,
+                            "first_occurrence": None,
+                            "last_occurrence": None,
+                        }
+                    results[message]["count"] += 1
+                    time = timeFromLog.strftime("%m%d %H:%M")
+                    if results[message]["first_occurrence"] is None:
+                        results[message]["first_occurrence"] = time
+                    results[message]["last_occurrence"] = time
+                    listOfErrorsInFile.append(message)
+                    hour = time[:-3]
+                    barChartJSON.setdefault(message, {})
+                    barChartJSON[message].setdefault(hour, 0)
+                    barChartJSON[message][hour] += 1
+                    nodeDetails[nodeName][message] = {}
+                    nodeDetails[nodeName][message]["count"] = results[message]["count"]
+                    nodeDetails[nodeName][message]["first_occurrence"] = results[message]["first_occurrence"]
+                    nodeDetails[nodeName][message]["last_occurrence"] = results[message]["last_occurrence"]
+                    nodeDetails[nodeName][message]["solution"] = getSolution(message)
+
     table = []
     for message, details in results.items():
         table.append([message, details["count"], details["first_occurrence"], details["last_occurrence"]])
@@ -450,7 +458,6 @@ def analyzeLogFile(logFile,outputFile, logFilesMetadata):
     else:
         listOfFilesWithNoErrors.append(logFile)
     logger.info("Finished analyzing log file: {}".format(logFile))
-    # Add list of errors to localHagenAIJSON under nodeDetails
     return listOfErrorsInFile, listOfFilesWithNoErrors, barChartJSON, nodeDetails
 
 def getVersion(logFilesMetadata):
