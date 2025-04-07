@@ -740,7 +740,7 @@ if __name__ == "__main__":
                 isLogMissing = True
         # Master logs
         if "ms" in choosenTypes:
-            missingNodes = [node for node in nodes if not any(node in file for file in logFilesToProcess if logFilesMetadata[file]["logType"] == "yb-master")]
+            missingNodes = [node for node in nodes if not any(node in file for file in logFilesToProcess if logFilesMetadata[file]["logType"] == "yb-master" and logFilesMetadata[file]["nodeName"] == node)]
             if missingNodes:
                 print(colorama.Fore.RED + f"Master logs missing for nodes: {', '.join(missingNodes)}")
                 isLogMissing = True
