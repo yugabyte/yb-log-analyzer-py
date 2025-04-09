@@ -764,6 +764,6 @@ if __name__ == "__main__":
         htmlNameOnServer = caseNumber + "-" + outputFile
         # Copy the output file to the server
         os.system("cp " + outputFile + " /home/support/logs_analyzer_dump/" + htmlNameOnServer)
-        logger.info("⌘+Click 👉👉 http://lincoln:7778/files/" + htmlNameOnServer)
+        logger.info("⌘+Click 👉👉 http://lincoln:7777/files/" + htmlNameOnServer)
     else:
         logger.info("⌘+Click 👉👉 file://" + os.path.abspath(outputFile) + " to view the analysis")
