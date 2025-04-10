@@ -411,6 +411,7 @@ def analyzeLogFile(logFile, outputFile, logFilesMetadata):
 
             # Stop processing after the end_time
             if timeFromLog > end_time:
+                logger.info("Reached end time: {}. Stopping analysis for file: {}".format(end_time.strftime("%m%d %H:%M"), logFile))
                 break
 
             for message, regex in regex_patterns.items():
