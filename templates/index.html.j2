@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Analyzed Logs</title>
+    <style>
+        table, th, td {
+            border: 1px solid black;
+            border-collapse: collapse;
+            padding: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h2>{{ title }}</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Ticket Number</th>
+                <th>Analysis File</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in analysis_items %}
+            <tr>
+                <td>{{ item.case_number }}</td>
+                <td><a href="{{ item.filename }}">{{ item.filename }}</a></td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="2">No analysis files found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

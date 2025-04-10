@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 from multiprocessing import Pool, Lock
 from colorama import Fore, Style
+from nbformat.reader import get_version
+
 from analyzer_lib import (
     universe_regex_patterns,
     universe_solutions,
@@ -22,6 +24,18 @@ import tabulate
 import tarfile
 import gzip
 import json
+
+from config import LINCOLN_HOSTNAME
+
+# Import helper functions
+from utils.helper import (
+        get_hostname,
+        get_case_number_from_path,
+        copy_analysis_file,
+        get_analysis_items,
+        generate_index_html,
+        find_version_in_logs
+    )
 
 class ColoredHelpFormatter(argparse.RawTextHelpFormatter):
     def _get_help_string(self, action):
@@ -94,11 +108,6 @@ seven_days_ago = seven_days_ago.strftime("%m%d %H:%M")
 start_time = datetime.datetime.strptime(args.start_time, "%m%d %H:%M") if args.start_time else datetime.datetime.strptime(seven_days_ago, "%m%d %H:%M")
 end_time = datetime.datetime.strptime(args.end_time, "%m%d %H:%M") if args.end_time else datetime.datetime.now()
 
-# Define the lists to store the results
-listOfErrorsInAllFiles = []
-listOfErrorsInFile = []
-listOfFilesWithNoErrors = []
-listOfAllFilesWithNoErrors = []
 
 # Define Barchart varz
 histogramJSON = {}
@@ -159,7 +168,7 @@ def getDeploymentType(dirPaths):
     return "Unknown"
 
 # Function to get the node directory
-def getNodeDirectory(node):
+def getNodeDirectory(dirPaths, node):
     for dirPath in dirPaths:
         for root, dirs, files in os.walk(dirPath):
             if dirs.__contains__(node):
@@ -168,14 +177,14 @@ def getNodeDirectory(node):
     return None
 
 # Function to get the node details
-def getNodeDetails():
+def getNodeDetails(dirPaths):
     tserverRunningOnMachine = tserverUUID = masterUUID = placement = runningOnMachine = numTablets = ''  # PV 20250403 - Variable was not initialized.
 
     nodeDetails = {}
     tserverList, masterList = getTserversMastersList(dirPaths)
     nodeList = set(tserverList + masterList)
     for node in nodeList:
-        nodeDir= getNodeDirectory(node)
+        nodeDir= getNodeDirectory(dirPaths, node)
         if os.path.exists(nodeDir):
             # Get the number of tablets
             tabletMeta = os.path.join(nodeDir,"tserver", "tablet-meta")
@@ -382,104 +391,169 @@ def skipFileBasedOnTime(logFile, start_time, end_time):
     
 
 # Function to analyze the log files                
-def analyzeLogFiles(logFile, outputFile, start_time=None, end_time=None):
+# Function to analyze the log files
+def analyze_log_files(logFile, outputFile, start_time=None, end_time=None):
+    # --- FIX: Initialize local lists for this specific file analysis ---
+    listOfErrorsInFile = []
+    listOfFilesWithNoErrors = []
+    # ------------------------------------------------------------------
+
     if logFile.__contains__("postgresql"):
         regex_patterns = pg_regex_patterns
     else:
         regex_patterns = universe_regex_patterns
-    
+
     # Check if histogram mode is enabled and set the patterns to analyze
     if args.histogram_mode:
         regex_patterns = {}
         patternsToAnalyze = args.histogram_mode.split(",")
         for pattern in patternsToAnalyze:
-            regex_patterns[pattern] = pattern
+            # Assuming universe_regex_patterns contains the actual regex patterns
+            # You might need a more robust way to get the pattern if it's not guaranteed to be in universe_regex_patterns
+            if pattern in universe_regex_patterns:
+                 regex_patterns[pattern] = universe_regex_patterns[pattern]
+            elif pattern in pg_regex_patterns:
+                 regex_patterns[pattern] = pg_regex_patterns[pattern]
+            else:
+                 # Fallback or warning if the custom pattern isn't predefined
+                 logger.warning(f"Custom pattern '{pattern}' not found in predefined lists. Using pattern as regex.")
+                 regex_patterns[pattern] = pattern # Use the name as the regex pattern itself
 
     previousTime = '0101 00:00' # Default time
     logger.info("Analyzing file {}".format(logFile))
     barChartJSON = {}
     if logFile.endswith(".gz"):
         try:
-            logs = gzip.open(logFile, "rt")
+            logs = gzip.open(logFile, "rt", errors='ignore') # Added errors='ignore' for robustness
         except EOFError:
             logger.warning("Got EOF Exception while reading file {}, skipping the file".format(logFile))
+            # Return the initialized (empty) lists
             return listOfErrorsInFile, listOfFilesWithNoErrors, barChartJSON
+        except Exception as e: # Catch other potential gzip errors
+             logger.error(f"Error opening gzipped file {logFile}: {e}")
+             return listOfErrorsInFile, listOfFilesWithNoErrors, barChartJSON
     else:
-        logs = open(logFile, "r")
-    try:
-        lines = logs.readlines()
-    except UnicodeDecodeError as e:
-        logger.warning("Skipping file {} as it is not a text file".format(logFile))
-        return listOfErrorsInFile, listOfFilesWithNoErrors, barChartJSON
-    except Exception as e:
-        logger.warning("Problem occured while reading the file: {}".format(logFile))
-        logger.error(e)
-        return listOfErrorsInFile, listOfFilesWithNoErrors, barChartJSON
-    results = {}
-    for line in lines:
-        timeFromLog = getTimeFromLog(line,previousTime)
-        # Continue with next file if the time is outside the range
-        if timeFromLog > end_time:
-            logger.debug("Skipping further analysis of file {} as it is outside the time range at {}".format(logFile, timeFromLog.strftime('%m%d %H:%M')))
+        try:
+            logs = open(logFile, "r", errors='ignore') # Added errors='ignore' for robustness
+        except Exception as e:
+            logger.error(f"Error opening file {logFile}: {e}")
             return listOfErrorsInFile, listOfFilesWithNoErrors, barChartJSON
-        for message, pattern in regex_patterns.items():
-            match = re.search(pattern, line, re.IGNORECASE)
-            if match:
-                # Populate results
-                if message not in results:
-                    results[message] = {
-                        "numOccurrences": 0,
-                        "firstOccurrenceTime": None,
-                        "lastOccurrenceTime": None,
-                    }
-                results[message]["numOccurrences"] += 1
-                time = timeFromLog.strftime('%m%d %H:%M')
-                if not results[message]["firstOccurrenceTime"]:
-                    results[message]["firstOccurrenceTime"] = time
-                results[message]["lastOccurrenceTime"] = time
-                listOfErrorsInFile.append(message)
-                
-                # Create JSON for bar chart
-                hour = time[:-3]
-                barChartJSON.setdefault(message, {})
-                barChartJSON[message].setdefault(hour, 0)
-                barChartJSON[message][hour] += 1                              
-    if args.sort_by == 'NO':
-        sortedDict = OrderedDict(sorted(results.items(), key=lambda x: x[1]["numOccurrences"], reverse=True))
-    elif args.sort_by == 'LO':
-        sortedDict = OrderedDict(sorted(results.items(), key=lambda x: x[1]["lastOccurrenceTime"]))
-    elif args.sort_by == 'FO' or True:
-        sortedDict = OrderedDict(sorted(results.items(), key=lambda x: x[1]["firstOccurrenceTime"]))
-    table = []
-    for message, info in sortedDict.items():
-        table.append(
-            [
-                info["numOccurrences"],
-                message,
-                info["firstOccurrenceTime"],
-                info["lastOccurrenceTime"],
-            ]
-        )
-    if table:
-        if args.html:
-            formatLogFileForHTMLId = logFile.replace("/", "-").replace(".", "-").replace(" ", "-").replace(":", "-")
-            content = "<h4 id=" + formatLogFileForHTMLId + ">" + logFile + "</h4>"
-            content += tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence"], tablefmt="html")
-            content = content.replace("$line-break$", "<br>").replace("$tab$", "&nbsp;&nbsp;&nbsp;&nbsp;").replace("$start-code$", "<code>").replace("$end-code$", "</code>").replace("$start-bold$", "<b>").replace("$end-bold$", "</b>").replace("$start-italic$", "<i>").replace("$end-italic$", "</i>").replace("<table>", "<table class='sortable' id='main-table'>")
-            writeToFile(outputFile, content)
-        else:
-            formatLogFileForMarkdown = logFile.replace("/", "-").replace(".", "-").replace(" ", "-").replace(":", "-")
-            content = "## " + formatLogFileForMarkdown + "\n\n"
-            content += tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence"], tablefmt="simple_grid")
-            content = content.replace("$line-break$", "\n").replace("$tab$", "\t").replace("$start-code$", "`").replace("$end-code$", "`").replace("$start-bold$", "**").replace("$end-bold$", "**").replace("$start-italic$", "*").replace("$end-italic$", "*")
-            writeToFile(outputFile, content)
-    else:
-        listOfFilesWithNoErrors.append(logFile)
-    logs.close()
-    logger.info("Finished analyzing file {}".format(logFile))
-    return listOfErrorsInFile, listOfFilesWithNoErrors, barChartJSON
 
-def getVersion():
+    try:
+        # Read line by line for potentially large files and better time filtering
+        results = {}
+        for line in logs: # Iterate directly over the file object
+            try:
+                timeFromLog = getTimeFromLog(line, previousTime)
+                # Update previousTime for the *next* line's potential relative parsing
+                previousTime = timeFromLog.strftime("%m%d %H:%M")
+            except Exception as e:
+                 # If timestamp parsing fails for a line, log it and potentially skip the line
+                 logger.debug(f"Could not parse timestamp for line in {logFile}: {line.strip()}. Error: {e}")
+                 continue # Skip this line
+
+            # Filter based on time range
+            if timeFromLog > end_time:
+                logger.debug("Reached end time {} in file {}, stopping analysis for this file.".format(end_time.strftime('%m%d %H:%M'), logFile))
+                break # Stop processing lines in this file
+            if timeFromLog < start_time:
+                continue # Skip lines before the start time
+
+            # Process the line if within the time range
+            for message, pattern in regex_patterns.items():
+                try:
+                    match = re.search(pattern, line, re.IGNORECASE)
+                    if match:
+                        # Populate results
+                        if message not in results:
+                            results[message] = {
+                                "numOccurrences": 0,
+                                "firstOccurrenceTime": None,
+                                "lastOccurrenceTime": None,
+                            }
+                        results[message]["numOccurrences"] += 1
+                        time_str = timeFromLog.strftime('%m%d %H:%M') # Use consistent variable name
+                        if not results[message]["firstOccurrenceTime"]:
+                            results[message]["firstOccurrenceTime"] = time_str
+                        results[message]["lastOccurrenceTime"] = time_str
+                        # Use setdefault to avoid checking if message exists every time
+                        listOfErrorsInFile.append(message) # Append to the local list
+
+                        # Create JSON for bar chart
+                        hour = time_str[:-3] # Gets MMdd HH
+                        barChartJSON.setdefault(message, {})
+                        barChartJSON[message].setdefault(hour, 0)
+                        barChartJSON[message][hour] += 1
+                except re.error as re_err:
+                    logger.error(f"Regex error for pattern '{pattern}' on line in {logFile}: {re_err}")
+                    # Optionally remove the problematic pattern to avoid repeated errors
+                    # del regex_patterns[message]
+                    break # Stop checking patterns for this line
+
+        # --- Processing after reading lines ---
+        # Ensure listOfErrorsInFile contains unique errors if needed (depends on desired output)
+        # If you only want to list each error type once per file in the final summary:
+        # listOfErrorsInFile = list(set(listOfErrorsInFile))
+
+        if args.sort_by == 'NO':
+            sortedDict = OrderedDict(sorted(results.items(), key=lambda x: x[1]["numOccurrences"], reverse=True))
+        elif args.sort_by == 'LO':
+            sortedDict = OrderedDict(sorted(results.items(), key=lambda x: x[1]["lastOccurrenceTime"]))
+        else: # Default is FO ('FO' or True)
+            sortedDict = OrderedDict(sorted(results.items(), key=lambda x: x[1]["firstOccurrenceTime"]))
+
+        table = []
+        for message, info in sortedDict.items():
+            table.append(
+                [
+                    info["numOccurrences"],
+                    message,
+                    info["firstOccurrenceTime"],
+                    info["lastOccurrenceTime"],
+                ]
+            )
+
+        if table: # If any errors were found and added to the table
+            if args.html:
+                formatLogFileForHTMLId = re.sub(r'[^a-zA-Z0-9_-]', '-', logFile) # Sanitize ID more robustly
+                content = f"<h4 id='{formatLogFileForHTMLId}'>{logFile}</h4>"
+                content += tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence"], tablefmt="html")
+                content = content.replace("$line-break$", "<br>").replace("$tab$", "&nbsp;&nbsp;&nbsp;&nbsp;").replace("$start-code$", "<code>").replace("$end-code$", "</code>").replace("$start-bold$", "<b>").replace("$end-bold$", "</b>").replace("$start-italic$", "<i>").replace("$end-italic$", "</i>").replace("<table>", "<table class='sortable' id='main-table'>") # Consider unique table IDs if needed
+                writeToFile(outputFile, content)
+            else: # Markdown
+                formatLogFileForMarkdown = re.sub(r'[^a-zA-Z0-9_-]', '-', logFile) # Sanitize
+                content = f"## {formatLogFileForMarkdown}\n\n" # Use filename as header
+                # content = f"## {logFile}\n\n" # Or use original filename
+                content += tabulate.tabulate(table, headers=["Occurrences", "Message", "First Occurrence", "Last Occurrence"], tablefmt="simple_grid")
+                content = content.replace("$line-break$", "\n").replace("$tab$", "\t").replace("$start-code$", "`").replace("$end-code$", "`").replace("$start-bold$", "**").replace("$end-bold$", "**").replace("$start-italic$", "*").replace("$end-italic$", "*")
+                writeToFile(outputFile, content)
+        elif not results: # Explicitly check if results dict is empty (meaning no patterns matched in time range)
+            # Append to the local list for this file if no errors were found
+            listOfFilesWithNoErrors.append(logFile)
+
+    except UnicodeDecodeError as e:
+        logger.warning("Skipping file {} due to UnicodeDecodeError: {}".format(logFile, e))
+        # Return the initialized (empty) lists
+        return [], [], {} # Return empty lists/dict explicitly
+    except Exception as e:
+        logger.warning("Problem occurred while reading/processing the file: {}".format(logFile))
+        logger.error(e, exc_info=True) # Log full traceback for debugging
+        # Return the initialized (empty) lists
+        return [], [], {} # Return empty lists/dict explicitly
+    finally:
+        if 'logs' in locals() and logs: # Ensure logs was opened and not already closed
+             try:
+                 logs.close()
+             except Exception as e:
+                 logger.warning(f"Error closing file {logFile}: {e}")
+
+
+    logger.info("Finished analyzing file {}".format(logFile))
+    # Return the populated local lists and the barchart data for this file
+    # Make listOfErrorsInFile unique before returning if needed for the summary part
+    return list(set(listOfErrorsInFile)), listOfFilesWithNoErrors, barChartJSON
+
+def get_version():
     if args.log_files:
         files = getLogFilesFromCommandLine()
     elif args.directory:
@@ -516,34 +590,43 @@ def getVersion():
             break
     return version
    
-def getSolution(message):
+def get_solution(message):
     if args.histogram_mode:
         return "No solution available for custom patterns"
     return solutions[message]
-    
-if __name__ == "__main__":
+
+
+def main():
+
+    # Define the lists to store the results
+    listOfErrorsInAllFiles = []
+    listOfErrorsInFile = []
+    listOfFilesWithNoErrors = []
+    listOfAllFilesWithNoErrors = []
+
+    htmlFooter = ""
     cmdLineOptions = vars(args)
     logger.info("Command line options: {}".format(cmdLineOptions))
     currentDir = os.getcwd()
     # Add cmdLineOptions and currentDir htmlFooter
     cmdLineDetails = """<h2 id=command-line-options> Command Line Options </h2>
-                        <table>
-                        <tr>
-                            <th>Command Line Options</th>
-                            <th>Value</th>
-                        </tr>"""
+                            <table>
+                            <tr>
+                                <th>Command Line Options</th>
+                                <th>Value</th>
+                            </tr>"""
     for key, value in cmdLineOptions.items():
         cmdLineDetails += f"""
-                        <tr>
-                            <td>{key}</td>
-                            <td>{str(value)}</td>
-                        </tr>"""
+                            <tr>
+                                <td>{key}</td>
+                                <td>{str(value)}</td>
+                            </tr>"""
     cmdLineDetails += f"""
-                        <tr>
-                            <td>Current Directory</td>
-                            <td>{currentDir}</td>
-                        </tr>
-                    </table>"""
+                            <tr>
+                                <td>Current Directory</td>
+                                <td>{currentDir}</td>
+                            </tr>
+                        </table>"""
     htmlFooter = cmdLineDetails + htmlFooter
     dirPaths = []
     outputFilePrefix = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
@@ -558,7 +641,7 @@ if __name__ == "__main__":
         outputFile = args.output_file
         if args.html:
             writeToFile(outputFile, htmlHeader)
-            
+
     # Get log files
     if args.log_files:
         logFileList = getLogFilesFromCommandLine()
@@ -581,7 +664,7 @@ if __name__ == "__main__":
     else:
         logger.info("Please specify a log file, or directory")
         exit(1)
-    
+
     # Check if log files were found
     if type(logFileList) is not list:
         logger.warning("No log files found")
@@ -589,7 +672,7 @@ if __name__ == "__main__":
 
     # Get the version of the software
     logger.info("Getting the version of the software")
-    version= getVersion()
+    version = find_version_in_logs(logFileList, logger)
     if version != "Unknown":
         if args.html:
             content = "<h2> YugabyteDB Version: " + version + "</h2>"
@@ -600,28 +683,31 @@ if __name__ == "__main__":
 
     # Add node details to the output file in table format
     logger.info("Getting the node details")
-    if len(getNodeDetails()) > 0:
+    if len(getNodeDetails(dirPaths)) > 0:
         # Sum of all tablets
         totalTablets = 0
-        for key, value in getNodeDetails().items():
+        for key, value in getNodeDetails(dirPaths).items():
             totalTablets += value["NumTablets"]
-        
+
         if args.html:
             content = "<h2 id=node-details> Node Details </h2>"
             content += "<table class='sortable' id='node-table'>"
             content += "<tr><th>Node</th><th>Master UUID</th><th>TServer UUID</th><th>Placement Info</th><th>Running on Machine</th><th>Number of Tablets</th></tr>"
-            for key, value in getNodeDetails().items():
+            for key, value in getNodeDetails(dirPaths).items():
                 # Calculate the percentage of tablets
                 try:
                     percentage = round((value["NumTablets"] / totalTablets) * 100, 2)
                 except ZeroDivisionError:
                     percentage = str("N/A")
-                content += "<tr><td>" + key + "</td><td>" + value["masterUUID"] + "</td><td>" + value["tserverUUID"] + "</td><td>" + value["placement"] + "</td><td>"  + value["runningOnMachine"] + "</td><td>" + str(value["NumTablets"]) + " (" + str(percentage) + "%) </td></tr>"
+                content += "<tr><td>" + key + "</td><td>" + value["masterUUID"] + "</td><td>" + value[
+                    "tserverUUID"] + "</td><td>" + value["placement"] + "</td><td>" + value[
+                               "runningOnMachine"] + "</td><td>" + str(value["NumTablets"]) + " (" + str(
+                    percentage) + "%) </td></tr>"
             content += "</table>"
             writeToFile(outputFile, content)
         else:
             content = "\n\n\n# Node Details\n\n"
-            for key, value in getNodeDetails().items():
+            for key, value in getNodeDetails(dirPaths).items():
                 content += "- " + key + "\n"
                 content += "  - Master UUID: " + value["masterUUID"] + "\n"
                 content += "  - TServer UUID: " + value["tserverUUID"] + "\n"
@@ -648,7 +734,7 @@ if __name__ == "__main__":
         gflags["master"] = getGFlags(masterConfFile)
     if tserverConfFile:
         gflags["tserver"] = getGFlags(tserverConfFile)
-    
+
     allGFlags = {}
     if masterConfFile and tserverConfFile:
         allGFlags = set(list(gflags["master"].keys()) + list(gflags["tserver"].keys()))
@@ -656,7 +742,7 @@ if __name__ == "__main__":
         allGFlags = set(list(gflags["tserver"].keys()))
     elif not tserverConfFile and masterConfFile:
         allGFlags = set(list(gflags["master"].keys()))
-        
+
     # Remove flags that are placement related
     allGFlags = [flag for flag in allGFlags if not flag.startswith("placement_")]
 
@@ -691,13 +777,14 @@ if __name__ == "__main__":
                 elif tserverConfFile:
                     content += "  - TServer: " + gflags["tserver"].get(flag, "-") + "\n"
             writeToFile(outputFile, content)
-    
+
     logger.info("Number of files to analyze:" + str(len(logFileList)))
     # Remove files that are outside the time range
     logFileList = [file for file in logFileList if not skipFileBasedOnTime(file, start_time, end_time)]
     # Analyze log files
     pool = Pool(processes=args.numThreads)
-    for listOfErrorsInFile, listOfFilesWithNoErrors, barChartJSON in pool.starmap(analyzeLogFiles, [(file, outputFile, start_time, end_time) for file in logFileList]):
+    for listOfErrorsInFile, listOfFilesWithNoErrors, barChartJSON in pool.starmap(analyze_log_files, [
+        (file, outputFile, start_time, end_time) for file in logFileList]):
         listOfErrorsInAllFiles = list(set(listOfErrorsInAllFiles + listOfErrorsInFile))
         listOfAllFilesWithNoErrors = list(set(listOfAllFilesWithNoErrors + listOfFilesWithNoErrors))
         for key, value in barChartJSON.items():
@@ -709,7 +796,7 @@ if __name__ == "__main__":
                         histogramJSON[key][subkey] = subvalue
             else:
                 histogramJSON[key] = value
-    
+
     if listOfErrorsInAllFiles:
         if args.html:
             # Write bar chart
@@ -717,8 +804,8 @@ if __name__ == "__main__":
             content += "<h2 id=troubleshooting-tips> Troubleshooting Tips </h2>\n"
             solutionMarkdown = "`"
             for error in listOfErrorsInAllFiles:
-                solution = getSolution(error)
-                solutionMarkdown += """### {}\n{}  \n\n---\n\n""".format(error, solution).replace('`','\`')
+                solution = get_solution(error)
+                solutionMarkdown += """### {}\n{}  \n\n---\n\n""".format(error, solution).replace('`', '\`')
             solutionMarkdown += "`"
             content += """<script>htmlGenerator = new showdown.Converter();\n"""
             content += """solutionsHTML = htmlGenerator.makeHtml({})\n""".format(solutionMarkdown)
@@ -729,10 +816,14 @@ if __name__ == "__main__":
             # Write troubleshooting tips
             content = "\n\n\n# Troubleshooting Tips\n\n"
             for error in listOfErrorsInAllFiles:
-                solution = getSolution(error)
+                solution = get_solution(error)
                 content += "### " + error + "\n\n"
-                content += solution.replace("$line-break$", "\n").replace("$tab$", "\t").replace("$start-code$", "`").replace("$end-code$", "`")
-                content += content.replace("$start-bold$", "**").replace("$end-bold$", "**").replace("$start-italic$", "*").replace("$end-italic$", "*")
+                content += solution.replace("$line-break$", "\n").replace("$tab$", "\t").replace("$start-code$",
+                                                                                                 "`").replace(
+                    "$end-code$", "`")
+                content += content.replace("$start-bold$", "**").replace("$end-bold$", "**").replace("$start-italic$",
+                                                                                                     "*").replace(
+                    "$end-italic$", "*")
                 content += content.replace("$start-link$", "").replace("$end-link$", "").replace("$end-link-text$", "")
                 writeToFile(outputFile, content)
     # Write list of files with no errors
@@ -749,7 +840,7 @@ if __name__ == "__main__":
         else:
             content = "\n\n\n# Files with no issues\n\n"
             content += """\n\n Below list of files do not have any issues to report! If you do find something out of the ordinary in them, create a Github issue at:
-            https://github.com/yugabyte/yb-log-analyzer-py/issues/new?assignees=pgyogesh&labels=%23newmessage&template=add-new-message.md&title=%5BNew+Message%5D\n\n"""
+                https://github.com/yugabyte/yb-log-analyzer-py/issues/new?assignees=pgyogesh&labels=%23newmessage&template=add-new-message.md&title=%5BNew+Message%5D\n\n"""
             content += "\n"
             for file in listOfAllFilesWithNoErrors:
                 content += "- " + file + "\n"
@@ -759,23 +850,59 @@ if __name__ == "__main__":
     logger.info("Analysis complete. Results are in " + outputFile)
 
     # if hostname == "lincoln" then copy file to directory /tmp
-    if os.uname()[1] == "lincoln":
-        # Get obsolute path of the args.directory
-        logDir = os.path.abspath(args.directory) if args.directory else os.path.abspath(args.log_files[0])
-        caseNumber = logDir.split("/")[2]
-        os.system("cp " + outputFile + " /home/support/logs_analyzer_dump/" + caseNumber + "-" + outputFile)
-        logger.info("⌘+Click 👉👉 http://lincoln:7777/" + caseNumber + "-" + outputFile)
-        listOfFiles = os.listdir("/home/support/logs_analyzer_dump/")
-        content = "<table style='border-collapse: collapse; border: 1px solid black;'>"
-        content += "<tr><td style='border: 1px solid black; padding: 5px;'> Ticket Number </td><td style='border: 1px solid black; padding: 5px;'> Analysis </td></tr>"
-        open("/home/support/logs_analyzer_dump/index.html", "w").write("<h2> List of analyzed files </h2>")
-        for file in listOfFiles:
-            if file.endswith(".html"):
-                caseNumber = file.split("-")[0]
-                content += "<tr><td> " + caseNumber + " </td><td> <a href='" + file + "'>" + file + "</a> </td></tr>"
-        content += "</table>"
-        if os.path.exists("/home/support/logs_analyzer_dump/index.html"):
-            os.remove("/home/support/logs_analyzer_dump/index.html")
-        open("/home/support/logs_analyzer_dump/index.html", "a").write(content)
+    # --- Main Logic ---
+    hostname = get_hostname()
+
+    if hostname == LINCOLN_HOSTNAME:
+        # Determine the source log directory to extract the case number
+        # Prioritize args.directory if provided, otherwise use the directory of the first log file
+        source_log_dir_path = None
+        if args.directory:
+            source_log_dir_path = os.path.abspath(args.directory)
+        elif args.log_files and os.path.exists(args.log_files[0]):
+            # Use dirname if log_files contains file paths, otherwise treat as dir path
+            if os.path.isfile(args.log_files[0]):
+                source_log_dir_path = os.path.dirname(os.path.abspath(args.log_files[0]))
+            else:  # Assume it's a directory path
+                source_log_dir_path = os.path.abspath(args.log_files[0])
+        else:
+            logger.error("Could not determine source log directory for case number extraction.")
+            source_log_dir_path = None  # Explicitly set to None
+
+        case_number = None
+        if source_log_dir_path:
+            case_number = get_case_number_from_path(source_log_dir_path)
+
+        if case_number:
+            logger.info(f"Detected Case Number: {case_number}")
+            # Copy the generated analysis file
+            copied_file_path = copy_analysis_file(outputFile, case_number)  # Uses default ANALYSIS_DUMP_DIR
+
+            if copied_file_path:
+                copied_filename = os.path.basename(copied_file_path)
+                # Log the URL for the specific file
+                logger.info(f"Analysis file copied to Lincoln server.")
+                logger.info(f"⌘+Click 👉👉 http://{LINCOLN_HOSTNAME}:7777/{copied_filename}")  # Assuming port 7777
+
+                # Update the index.html
+                analysis_items = get_analysis_items()  # Uses default ANALYSIS_DUMP_DIR
+                if generate_index_html(analysis_items):
+                    logger.info(f"Index file updated: http://{LINCOLN_HOSTNAME}:7777/index.html")
+                else:
+                    logger.error("Failed to update index.html on Lincoln server.")
+            else:
+                logger.error(f"Failed to copy analysis file '{outputFile}' for case {case_number}.")
+
+        else:
+            logger.warning("Could not determine case number. Skipping copy and index update on Lincoln.")
+            # Log local file path as a fallback
+            logger.info("Analysis complete. View local file:")
+            logger.info(f"⌘+Click 👉👉 file://{os.path.abspath(outputFile)}")
+
     else:
-        logger.info("⌘+Click 👉👉 file://" + os.path.abspath(outputFile) + " to view the analysis")
+        # Running on a different machine
+        logger.info("Analysis complete. View local file:")
+        logger.info(f"⌘+Click 👉👉 file://{os.path.abspath(outputFile)}")
+
+if __name__ == "__main__":
+    main()
