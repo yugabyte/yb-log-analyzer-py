@@ -23,6 +23,7 @@ import tarfile
 import gzip
 import json
 
+from utils.render import generate_index_html
 from config import DUMP_DIR
 from utils.helper import extract_zendesk_ticket_id
 
@@ -766,22 +767,23 @@ if __name__ == "__main__":
         # Get obsolute path of the args.directory
         logDir = os.path.abspath(args.directory) if args.directory else os.path.abspath(args.log_files[0])
         caseNumber = logDir.split("/")[2]
-        caseNumber = extract_zendesk_ticket_id(logDir)
-        #os.system("cp " + outputFile + " /home/support/logs_analyzer_dump/" + caseNumber + "-" + outputFile)
-        command_str = f"cp {outputFile} {DUMP_DIR}/{caseNumber}-{outputFile}" # Regardless of where the command is issued, if user name is lincoln, we send a copy of the file to 'DUMP_DIR'
-        os.system(command_str)
+        #caseNumber = extract_zendesk_ticket_id(logDir)
+        os.system("cp " + outputFile + " /home/support/logs_analyzer_dump/" + caseNumber + "-" + outputFile)
+        #command_str = f"cp {outputFile} {DUMP_DIR}/{caseNumber}-{outputFile}" # Regardless of where the command is issued, if user name is lincoln, we send a copy of the file to 'DUMP_DIR'
+        #os.system(command_str)
         logger.info("⌘+Click 👉👉 http://lincoln:7777/" + caseNumber + "-" + outputFile)
-        listOfFiles = os.listdir(DUMP_DIR)
-        content = "<table style='border-collapse: collapse; border: 1px solid black;'>"
-        content += "<tr><td style='border: 1px solid black; padding: 5px;'> Ticket Number </td><td style='border: 1px solid black; padding: 5px;'> Analysis </td></tr>"
-        open("/home/support/logs_analyzer_dump/index.html", "w").write("<h2> List of analyzed files </h2>")
-        for file in listOfFiles:
-            if file.endswith(".html"):
-                caseNumber = file.split("-")[0]
-                content += "<tr><td> " + caseNumber + " </td><td> <a href='" + file + "'>" + file + "</a> </td></tr>"
-        content += "</table>"
-        if os.path.exists(f"{DUMP_DIR}/index.html"):
-            os.remove(f"{DUMP_DIR}/index.html")
-        open(f"{DUMP_DIR}/index.html", "a").write(content)
+        generate_index_html()
+        #listOfFiles = os.listdir(DUMP_DIR)
+        #content = "<table style='border-collapse: collapse; border: 1px solid black;'>"
+        #content += "<tr><td style='border: 1px solid black; padding: 5px;'> Ticket Number </td><td style='border: 1px solid black; padding: 5px;'> Analysis </td></tr>"
+        #open("/home/support/logs_analyzer_dump/index.html", "w").write("<h2> List of analyzed files </h2>")
+        #for file in listOfFiles:
+        #    if file.endswith(".html"):
+        #        caseNumber = file.split("-")[0]
+        #        content += "<tr><td> " + caseNumber + " </td><td> <a href='" + file + "'>" + file + "</a> </td></tr>"
+        #content += "</table>"
+        #if os.path.exists(f"{DUMP_DIR}/index.html"):
+        #    os.remove(f"{DUMP_DIR}/index.html")
+        #open(f"{DUMP_DIR}/index.html", "a").write(content)
     else:
         logger.info("⌘+Click 👉👉 file://" + os.path.abspath(outputFile) + " to view the analysis")

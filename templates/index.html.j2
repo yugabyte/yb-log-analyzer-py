@@ -4,13 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }} - YugabyteDB Log Analysis</title>
-    <!-- Link Google Font: Inter (Primary body font, fallback for headlines) -->
+    <!-- Link Google Font: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
+    <!-- Optional: DataTables styling integration (e.g., Bootstrap 5)
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+    -->
+
     <style>
-        /* YugabyteDB Color Palette Variables (Based on Guidelines) */
+        /* YugabyteDB Color Palette Variables */
         :root {
             --yb-indigo: #1E154B; /* Primary Dark */
             --yb-purple: #735AF5; /* Primary Accent */
@@ -24,7 +30,6 @@
             --yb-black: #121017; /* Near Black */
 
             --font-primary: 'Inter', sans-serif;
-            /* Roobert is preferred for headlines, but Inter is a safe web fallback */
             --font-headline: 'Inter', sans-serif; /* Use Inter SemiBold (600) */
         }
 
@@ -34,18 +39,13 @@
             margin: 0;
             padding: 0;
         }
-
-        html {
-            font-size: 100%; /* Base font size */
-            scroll-behavior: smooth;
-        }
-
+        html { font-size: 100%; scroll-behavior: smooth; }
         body {
             font-family: var(--font-primary);
-            font-weight: 400; /* Regular */
-            line-height: 1.6; /* Improved readability */
+            font-weight: 400;
+            line-height: 1.6;
             color: var(--yb-gray-11);
-            background-color: var(--yb-gray-1); /* Light gray background */
+            background-color: var(--yb-gray-1);
             padding: 0;
             display: flex;
             flex-direction: column;
@@ -54,116 +54,159 @@
 
         /* Header Styling */
         .yb-header {
-            background-color: var(--yb-indigo); /* Dark background suits the specified logo */
+            background-color: var(--yb-indigo);
             color: var(--yb-white);
-            padding: 0.75rem 2rem; /* Adjusted padding slightly for image height */
+            padding: 0.75rem 2rem;
             display: flex;
             align-items: center;
             gap: 1rem;
         }
-
-        /* Logo Link Container */
-        .yb-logo-link {
-            display: inline-flex; /* Helps align the image vertically */
-            align-items: center;
-            text-decoration: none;
-        }
-
-        /* SVG Logo Image Styling */
-        .yb-logo-img {
-            height: 32px; /* Adjust height as needed - SVG scales well */
-            width: auto; /* Maintain aspect ratio */
-            vertical-align: middle; /* Ensure proper alignment */
-        }
+        .yb-logo-link { display: inline-flex; align-items: center; text-decoration: none; }
+        .yb-logo-img { height: 32px; width: auto; vertical-align: middle; }
 
         /* Main Content Container */
         .container {
             max-width: 1100px;
-            margin: 2rem auto; /* Centering and spacing */
+            margin: 2rem auto;
             padding: 1.5rem 2rem;
             background-color: var(--yb-white);
-            border-radius: 8px; /* Softer corners */
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); /* Subtle shadow */
-            flex-grow: 1; /* Takes up available space */
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            flex-grow: 1;
         }
 
         /* Page Title */
         h2.page-title {
             font-family: var(--font-headline);
-            font-weight: 600; /* SemiBold */
+            font-weight: 600;
             font-size: 1.75rem;
             color: var(--yb-indigo);
             margin-bottom: 1.5rem;
-            line-height: 1.3; /* Tighter leading for headlines */
+            line-height: 1.3;
             border-bottom: 2px solid var(--yb-purple);
             padding-bottom: 0.5rem;
             display: inline-block;
         }
 
+        /* Filter Controls Area */
+        .filter-controls {
+            margin-bottom: 1.5rem;
+            display: flex;
+            flex-wrap: wrap; /* Allow wrapping on smaller screens */
+            gap: 1rem;
+            padding: 1rem;
+            background-color: var(--yb-gray-1);
+            border-radius: 4px;
+            border: 1px solid var(--yb-gray-3);
+        }
+        .filter-controls label {
+            font-weight: 600;
+            color: var(--yb-indigo);
+            margin-right: 0.5rem;
+            flex-shrink: 0; /* Prevent label from shrinking too much */
+        }
+        .filter-controls select {
+            padding: 0.4rem 0.6rem;
+            border: 1px solid var(--yb-gray-5);
+            border-radius: 4px;
+            background-color: var(--yb-white);
+            font-family: var(--font-primary);
+            font-size: 0.9rem;
+            min-width: 150px; /* Give dropdowns some base width */
+            flex-grow: 1; /* Allow dropdowns to grow */
+        }
+         .filter-group {
+            display: flex;
+            align-items: center;
+            flex-basis: 300px; /* Suggest a base width for each filter group */
+            flex-grow: 1;
+        }
+
+
         /* Table Styling */
         table.yb-table {
             width: 100%;
-            border-collapse: collapse; /* Remove space between borders */
-            border: 1px solid var(--yb-gray-3); /* Softer main border */
-            border-radius: 4px; /* Slight rounding for table */
-            overflow: hidden; /* Ensures border-radius clips content */
+            border-collapse: collapse;
+            border: 1px solid var(--yb-gray-3);
+            border-radius: 4px;
+            overflow: hidden; /* Needed for border-radius clipping */
             font-size: 0.95rem;
         }
 
         /* Table Header */
-        table.yb-table th {
-            background-color: var(--yb-gray-1); /* Light background for header */
+        table.yb-table thead th { /* Applied by DataTables */
+            background-color: var(--yb-gray-1);
             color: var(--yb-indigo);
             font-family: var(--font-headline);
-            font-weight: 600; /* SemiBold */
+            font-weight: 600;
             text-align: left;
             padding: 0.8rem 1rem;
-            border-bottom: 2px solid var(--yb-purple); /* Accent border */
+            border-bottom: 2px solid var(--yb-purple);
+            cursor: pointer; /* Indicate sortable columns */
+            position: relative; /* Needed for sorting icons */
+            padding-right: 25px; /* Space for sorting icons */
         }
+
+         /* DataTables Sorting Icons Alignment (Basic) */
+        table.dataTable thead .sorting,
+        table.dataTable thead .sorting_asc,
+        table.dataTable thead .sorting_desc {
+            background-position: right 0.5rem center; /* Adjust icon position */
+            background-repeat: no-repeat;
+            background-size: 1em 1em; /* Adjust icon size if needed */
+        }
+        /* You might need more specific CSS to style the default DataTables icons
+           or use a theme integration (like Bootstrap) which styles them */
+
 
         /* Table Cells */
-        table.yb-table td {
+        table.yb-table tbody td {
             padding: 0.8rem 1rem;
-            border-bottom: 1px solid var(--yb-gray-3); /* Horizontal lines */
-            vertical-align: middle; /* Align content vertically */
+            border-bottom: 1px solid var(--yb-gray-3);
+            vertical-align: middle;
         }
 
-        /* Zebra Striping for Readability */
+        /* Zebra Striping */
         table.yb-table tbody tr:nth-child(even) {
             background-color: var(--yb-gray-1);
         }
+        /* DataTables might override this, check if needed */
+        table.dataTable.stripe tbody tr.odd { background-color: var(--yb-white); }
+        table.dataTable.stripe tbody tr.even { background-color: var(--yb-gray-1); }
 
-        /* Hover Effect for Rows */
-        table.yb-table tbody tr:hover {
-            background-color: #e9e7f5; /* Slightly darker than gray-1, derived */
+
+        /* Hover Effect */
+         table.yb-table tbody tr:hover,
+         table.dataTable.hover tbody tr:hover { /* Target DataTables hover class */
+            background-color: #e9e7f5; /* Slightly darker */
         }
 
-        /* Remove bottom border for the last row */
-        table.yb-table tbody tr:last-child td {
-            border-bottom: none;
-        }
+        /* Remove bottom border for the last row (DataTables might add pagination, making this less relevant) */
+        /* table.yb-table tbody tr:last-child td { border-bottom: none; } */
 
         /* Link Styling */
         table.yb-table td a {
-            color: var(--yb-orange); /* Use brand orange for links */
+            color: var(--yb-orange);
             text-decoration: none;
-            font-weight: 600; /* Make links stand out slightly */
+            font-weight: 600;
             transition: color 0.2s ease;
         }
-
         table.yb-table td a:hover,
         table.yb-table td a:focus {
-            color: #e04a27; /* Darker shade of orange on hover */
+            color: #e04a27;
             text-decoration: underline;
         }
 
-        /* Empty State Styling */
-        .empty-state td {
+        /* Empty State Styling (DataTables has its own) */
+        .dataTables_empty { /* Style DataTables empty message */
             text-align: center;
             color: var(--yb-gray-9);
-            padding: 2rem 1rem;
+            padding: 2rem 1rem !important; /* Use !important cautiously if needed */
             font-style: italic;
         }
+        /* Hide original empty state if DataTables is active */
+        .yb-table .empty-state { display: none; }
+
 
         /* Footer Styling */
         .yb-footer {
@@ -174,24 +217,30 @@
             color: var(--yb-gray-9);
         }
 
-        /* Responsive Adjustments (Optional Simple Example) */
+        /* DataTables elements styling (optional, adjust as needed) */
+        .dataTables_wrapper .dataTables_length,
+        .dataTables_wrapper .dataTables_filter, /* Hiding default global filter */
+        .dataTables_wrapper .dataTables_info,
+        .dataTables_wrapper .dataTables_paginate {
+            padding: 0.5rem 0; /* Add some spacing */
+            font-size: 0.9rem;
+        }
+        /* HIDE the default global search input as we use column filters */
+        .dataTables_filter {
+            display: none;
+        }
+
+        /* Responsive Adjustments */
         @media (max-width: 768px) {
-            .container {
-                margin: 1rem;
-                padding: 1rem;
-            }
-            h2.page-title {
-                font-size: 1.5rem;
-            }
-            table.yb-table th, table.yb-table td {
-                padding: 0.6rem 0.8rem;
-            }
-            .yb-header {
-                padding: 0.5rem 1rem; /* Adjust header padding */
-            }
-            .yb-logo-img {
-                 height: 28px; /* Slightly smaller logo on mobile */
-            }
+            .container { margin: 1rem; padding: 1rem; }
+            h2.page-title { font-size: 1.5rem; }
+            /* DataTables handles responsiveness better, but adjust padding if needed */
+            table.yb-table th, table.yb-table td { padding: 0.6rem 0.8rem; }
+            .yb-header { padding: 0.5rem 1rem; }
+            .yb-logo-img { height: 28px; }
+            .filter-controls { flex-direction: column; align-items: stretch; }
+            .filter-group { flex-basis: auto; }
+            .filter-controls select { width: 100%; } /* Make selects full width on mobile */
         }
 
     </style>
@@ -199,29 +248,41 @@
 <body>
 
     <header class="yb-header">
-        <!-- Link wrapping the logo -->
         <a href="/" class="yb-logo-link" aria-label="YugabyteDB Home">
-            <!--
-                SVG Logo Implementation:
-                - src path assumes 'resources' is accessible from the web root.
-                - Adjust the path '/resources/...' based on your static file setup
-                  (e.g., it might be '/static/resources/...' or use a template function
-                  like url_for('static', filename='resources/Yugabyte-Logo-Dark BG-RGB.svg')).
-            -->
             <img src="/resources/Yugabyte-Logo-Dark BG-RGB.svg"
                  alt="YugabyteDB Logo"
                  class="yb-logo-img">
+            <!-- Adjust src path as needed for your framework -->
+            <!-- Flask example: {% raw %}src="{{ url_for('static', filename='resources/Yugabyte-Logo-Dark BG-RGB.svg') }}"{% endraw %} -->
         </a>
-        <!-- Maybe add navigation or user info here if needed -->
     </header>
 
     <main class="container">
         <h2 class="page-title">{{ title }}</h2>
 
-        <table class="yb-table">
+        <!-- Filter Controls -->
+        <div class="filter-controls">
+             <div class="filter-group">
+                <label for="ticketFilter">Ticket Number:</label>
+                <select id="ticketFilter" data-column-index="0">
+                    <option value="">All Tickets</option>
+                    <!-- Options will be populated by JavaScript -->
+                </select>
+            </div>
+             <div class="filter-group">
+                <label for="fileFilter">Analysis File:</label>
+                <select id="fileFilter" data-column-index="1">
+                    <option value="">All Files</option>
+                    <!-- Options will be populated by JavaScript -->
+                </select>
+            </div>
+        </div>
+
+        <!-- Add an ID to the table for DataTables targeting -->
+        <table id="analysisTable" class="yb-table display stripe hover"> <!-- Add DataTables classes -->
             <thead>
                 <tr>
-                    <th>Ticket Number</th>
+                    <th>Ticket Number</th> <!-- DataTables makes these clickable for sorting -->
                     <th>Analysis File</th>
                 </tr>
             </thead>
@@ -232,8 +293,10 @@
                     <td><a href="{{ item.filename }}">{{ item.filename }}</a></td>
                 </tr>
                 {% else %}
+                <!-- This row might be hidden by DataTables if the table is empty on load.
+                     DataTables provides its own empty message. -->
                 <tr class="empty-state">
-                    <td colspan="2">No analysis files found.</td>
+                    <td colspan="2">No analysis files found (Initial load).</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -241,8 +304,97 @@
     </main>
 
     <footer class="yb-footer">
-        &copy; {{ current_year }} Yugabyte, Inc. All rights reserved. <!-- Using Jinja's `now` tag for year -->
+        &copy; {{ current_year }} Yugabyte, Inc. All rights reserved.
     </footer>
+
+    <!-- jQuery (Required by DataTables standard distribution) -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <!-- DataTables JavaScript -->
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <!-- Optional: DataTables Bootstrap 5 integration JS
+    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+    -->
+
+    <script>
+        $(document).ready(function() {
+            // Initialize DataTables
+            var table = $('#analysisTable').DataTable({
+                // Disable default search box as we use column filters
+                searching: true, // Keep internal search enabled for column filters
+                // "dom": '<"top"i>rt<"bottom"lp><"clear">', // Example to customize layout if needed
+                language: {
+                    // Customize messages if needed
+                    emptyTable: "No analysis files matching filters found.",
+                    zeroRecords: "No matching analysis files found",
+                     // info: "Showing _START_ to _END_ of _TOTAL_ entries", // Default is usually fine
+                     // lengthMenu: "Show _MENU_ entries", // Default is usually fine
+                },
+                // Enable state saving if you want filters/sort to persist across page loads (uses localStorage)
+                // stateSave: true,
+                // Order by ticket number ascending initially (optional)
+                 order: [[0, 'asc']], // Sort by first column (index 0) ascending
+
+                // Function called once the table is fully drawn, including after filtering/sorting
+                initComplete: function () {
+                    console.log("DataTables initComplete triggered.");
+                    this.api().columns([0, 1]).every(function () { // Target columns 0 and 1
+                        var column = this;
+                        var columnIndex = column.index();
+                        // Find the corresponding select element using data attribute
+                        var select = $('select[data-column-index="' + columnIndex + '"]');
+
+                        if (select.length === 0) {
+                             console.warn("No select found for column index:", columnIndex);
+                             return; // Skip if no select element found for this column
+                         }
+
+                        console.log("Processing column index:", columnIndex);
+
+                        // --- Populate Dropdown ---
+                        // 1. Get unique data for the column
+                        var uniqueData = column
+                            .data()
+                            .unique()
+                            .sort() // Sort the unique values
+                            .toArray(); // Convert to array
+
+                         // 2. Clear existing options (except the 'All')
+                         select.find('option:not(:first-child)').remove();
+
+                         // 3. Add unique values as options
+                         uniqueData.forEach(function (d) {
+                             // Basic HTML sanitization/check (DataTables data is usually safe, but good practice)
+                            var cleanData = $('<div>').text(d).html(); // Basic text sanitization
+                            if (cleanData) { // Add only if data is not empty/null
+                                select.append('<option value="' + cleanData + '">' + cleanData + '</option>');
+                            }
+                         });
+
+                         // --- Attach Filter Event Listener ---
+                         select.off('change').on('change', function () {
+                            var val = $(this).val();
+                            console.log("Filter change on column", columnIndex, "Value:", val);
+
+                            // Use regex search for exact match, escaping special characters
+                            // Anchor start (^) and end ($) to match the whole cell content exactly.
+                            // Escape regex special characters in the value.
+                             var escapedVal = $.fn.dataTable.util.escapeRegex(val);
+
+                             column
+                                .search(val ? '^' + escapedVal + '$' : '', true, false) // Use regex (true), smart search (false)
+                                .draw(); // Redraw the table
+                        });
+                    });
+                 } // end initComplete
+            }); // end DataTable initialization
+
+             // Optional: If you want filters to re-populate if the table data *might* change dynamically
+             // without a full page reload (e.g., via AJAX), you might need to re-run the
+             // population logic within a draw callback or a custom event listener.
+             // For this Jinja template scenario (data loaded on page render), initComplete is sufficient.
+
+        }); // end document.ready
+    </script>
 
 </body>
 </html>
