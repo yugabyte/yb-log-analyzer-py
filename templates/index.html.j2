@@ -66,7 +66,7 @@
 
         /* Main Content Container */
         .container {
-            max-width: 1100px;
+            max-width: 1100px; /* Adjusted max-width slightly for more filter space */
             margin: 2rem auto;
             padding: 1.5rem 2rem;
             background-color: var(--yb-white);
@@ -93,33 +93,42 @@
             margin-bottom: 1.5rem;
             display: flex;
             flex-wrap: wrap; /* Allow wrapping on smaller screens */
-            gap: 1rem;
+            gap: 1rem; /* Spacing between filter groups */
             padding: 1rem;
             background-color: var(--yb-gray-1);
             border-radius: 4px;
             border: 1px solid var(--yb-gray-3);
         }
+        .filter-group {
+            display: flex;
+            align-items: center;
+            flex-basis: 280px; /* Suggest a base width for each filter group */
+            flex-grow: 1; /* Allow groups to grow */
+            gap: 0.5rem; /* Space between label and input within a group */
+        }
         .filter-controls label {
             font-weight: 600;
             color: var(--yb-indigo);
-            margin-right: 0.5rem;
             flex-shrink: 0; /* Prevent label from shrinking too much */
+            margin-bottom: 0; /* Reset margin if needed */
+            white-space: nowrap; /* Prevent label text wrapping */
         }
-        .filter-controls select {
+        .filter-controls select,
+        .filter-controls input[type="date"] { /* Style both select and date inputs */
             padding: 0.4rem 0.6rem;
             border: 1px solid var(--yb-gray-5);
             border-radius: 4px;
             background-color: var(--yb-white);
             font-family: var(--font-primary);
             font-size: 0.9rem;
-            min-width: 150px; /* Give dropdowns some base width */
-            flex-grow: 1; /* Allow dropdowns to grow */
+            flex-grow: 1; /* Allow inputs to fill the group space */
+            min-width: 120px; /* Minimum width for inputs */
         }
-         .filter-group {
-            display: flex;
-            align-items: center;
-            flex-basis: 300px; /* Suggest a base width for each filter group */
-            flex-grow: 1;
+        /* Specific style for date input appearance if needed */
+        .filter-controls input[type="date"] {
+             /* Add specific styles if the browser default isn't ideal */
+             /* Example: Make it slightly taller if needed */
+             /* line-height: 1.4; */
         }
 
 
@@ -231,6 +240,11 @@
         }
 
         /* Responsive Adjustments */
+        @media (max-width: 992px) { /* Adjust breakpoint if needed */
+             .filter-group {
+                 flex-basis: calc(50% - 1rem); /* Two columns on medium screens */
+             }
+        }
         @media (max-width: 768px) {
             .container { margin: 1rem; padding: 1rem; }
             h2.page-title { font-size: 1.5rem; }
@@ -239,8 +253,9 @@
             .yb-header { padding: 0.5rem 1rem; }
             .yb-logo-img { height: 28px; }
             .filter-controls { flex-direction: column; align-items: stretch; }
-            .filter-group { flex-basis: auto; }
-            .filter-controls select { width: 100%; } /* Make selects full width on mobile */
+            .filter-group { flex-basis: auto; width: 100%; } /* Stack filters vertically */
+            .filter-controls select,
+            .filter-controls input[type="date"] { width: auto; } /* Let flex-grow handle width */
         }
 
     </style>
@@ -276,6 +291,16 @@
                     <!-- Options will be populated by JavaScript -->
                 </select>
             </div>
+            <!-- NEW: Date Range Filter -->
+            <div class="filter-group">
+                <label for="startDate">Start Date:</label>
+                <input type="date" id="startDate" data-column-index="2"> <!-- Added data-column-index for consistency -->
+            </div>
+            <div class="filter-group">
+                <label for="endDate">End Date:</label>
+                <input type="date" id="endDate" data-column-index="2"> <!-- Added data-column-index for consistency -->
+            </div>
+            <!-- END NEW -->
         </div>
 
         <!-- Add an ID to the table for DataTables targeting -->
@@ -284,7 +309,7 @@
                 <tr>
                     <th>Ticket Number</th> <!-- DataTables makes these clickable for sorting -->
                     <th>Analysis File</th>
-                    <th>Analysis Date</th>
+                    <th>Analysis Date</th> <!-- Target column for date filter (index 2) -->
                 </tr>
             </thead>
             <tbody>
@@ -292,13 +317,14 @@
                 <tr>
                     <td>{{ item.case_number }}</td>
                     <td><a href="{{ item.filename }}">{{ item.filename }}</a></td>
+                    <!-- Ensure this outputs in a consistent format, ideally YYYY-MM-DD HH:MM:SS or just YYYY-MM-DD -->
                     <td>{{ item.analysis_date }}</td>
                 </tr>
                 {% else %}
                 <!-- This row might be hidden by DataTables if the table is empty on load.
                      DataTables provides its own empty message. -->
                 <tr class="empty-state">
-                    <td colspan="2">No analysis files found (Initial load).</td>
+                    <td colspan="3">No analysis files found (Initial load).</td> <!-- Updated colspan -->
                 </tr>
                 {% endfor %}
             </tbody>
@@ -319,81 +345,114 @@
 
     <script>
         $(document).ready(function() {
+
+            // --- NEW: Date Range Filter Logic ---
+            // Custom filtering function which will search data in date range
+            // Needs to be defined *before* DataTables initialization if referenced directly,
+            // but here we define it first and then use it via event listeners.
+            $.fn.dataTable.ext.search.push(
+                function( settings, data, dataIndex ) {
+                    // Check if the search is for the correct table
+                    // (useful if you have multiple tables on one page)
+                    if ( settings.nTable.id !== 'analysisTable' ) {
+                        return true;
+                    }
+
+                    var minStr = $('#startDate').val(); // Get value from start date input (YYYY-MM-DD)
+                    var maxStr = $('#endDate').val();   // Get value from end date input (YYYY-MM-DD)
+                    var dateStr = data[2] || ''; // Get content from the 'Analysis Date' column (index 2)
+
+                    // --- Handle rows with no valid date ---
+                    // If the cell is empty or 'None', only show it if *no* date filter is applied.
+                    if (!dateStr || dateStr.toLowerCase() === 'none') {
+                        return !minStr && !maxStr; // Show if both filters are empty, hide otherwise
+                    }
+
+                    // --- Extract the date part (YYYY-MM-DD) from the cell ---
+                    // Assumes format "YYYY-MM-DD HH:MM:SS" or just "YYYY-MM-DD"
+                    var datePart = dateStr.split(' ')[0];
+
+                    // Basic validation of the extracted date format
+                    if (!/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
+                         console.warn("Invalid date format found in table:", dateStr);
+                         return !minStr && !maxStr; // Treat invalid format like 'None'
+                    }
+
+                    // --- Perform the range comparison ---
+                    // Using string comparison works reliably for YYYY-MM-DD format
+
+                    // Check Start Date: If minStr exists and the cell date is earlier, hide row
+                    if (minStr && datePart < minStr) {
+                        return false;
+                    }
+
+                    // Check End Date: If maxStr exists and the cell date is later, hide row
+                    if (maxStr && datePart > maxStr) {
+                        return false;
+                    }
+
+                    // If we reach here, the date is within the range (or filters are not set)
+                    return true;
+                }
+            );
+            // --- END NEW: Date Range Filter Logic ---
+
+
             // Initialize DataTables
             var table = $('#analysisTable').DataTable({
-                // Disable default search box as we use column filters
-                searching: true, // Keep internal search enabled for column filters
-                // "dom": '<"top"i>rt<"bottom"lp><"clear">', // Example to customize layout if needed
+                searching: true, // Keep internal search enabled for filters
                 language: {
-                    // Customize messages if needed
                     emptyTable: "No analysis files matching filters found.",
                     zeroRecords: "No matching analysis files found",
-                     // info: "Showing _START_ to _END_ of _TOTAL_ entries", // Default is usually fine
-                     // lengthMenu: "Show _MENU_ entries", // Default is usually fine
                 },
-                // Enable state saving if you want filters/sort to persist across page loads (uses localStorage)
-                // stateSave: true,
-                // Order by ticket number ascending initially (optional)
-                 order: [[0, 'asc']], // Sort by first column (index 0) ascending
-
-                // Function called once the table is fully drawn, including after filtering/sorting
+                order: [[0, 'asc']], // Sort by first column (index 0) ascending
+                columnDefs: [
+                    // Make the date column (index 2) type 'date' for potentially better sorting
+                    // Note: This relies on the date format being consistently parseable by DataTables.
+                    // YYYY-MM-DD HH:MM:SS or YYYY-MM-DD should work.
+                    { type: 'date', targets: 2 }
+                ],
                 initComplete: function () {
                     console.log("DataTables initComplete triggered.");
-                    this.api().columns([0, 1]).every(function () { // Target columns 0 and 1
+                    this.api().columns([0, 1]).every(function () { // Target columns 0 and 1 for dropdowns
                         var column = this;
                         var columnIndex = column.index();
-                        // Find the corresponding select element using data attribute
                         var select = $('select[data-column-index="' + columnIndex + '"]');
 
                         if (select.length === 0) {
                              console.warn("No select found for column index:", columnIndex);
-                             return; // Skip if no select element found for this column
+                             return;
                          }
+                        console.log("Processing column index for dropdown:", columnIndex);
 
-                        console.log("Processing column index:", columnIndex);
-
-                        // --- Populate Dropdown ---
-                        // 1. Get unique data for the column
-                        var uniqueData = column
-                            .data()
-                            .unique()
-                            .sort() // Sort the unique values
-                            .toArray(); // Convert to array
-
-                         // 2. Clear existing options (except the 'All')
-                         select.find('option:not(:first-child)').remove();
-
-                         // 3. Add unique values as options
-                         uniqueData.forEach(function (d) {
-                             // Basic HTML sanitization/check (DataTables data is usually safe, but good practice)
-                            var cleanData = $('<div>').text(d).html(); // Basic text sanitization
-                            if (cleanData) { // Add only if data is not empty/null
+                        var uniqueData = column.data().unique().sort().toArray();
+                        select.find('option:not(:first-child)').remove();
+                        uniqueData.forEach(function (d) {
+                            var cleanData = $('<div>').text(d).html();
+                            if (cleanData && cleanData.toLowerCase() !== 'none') { // Avoid adding 'None' as a filter option
                                 select.append('<option value="' + cleanData + '">' + cleanData + '</option>');
                             }
-                         });
+                        });
 
-                         // --- Attach Filter Event Listener ---
-                         select.off('change').on('change', function () {
+                        select.off('change').on('change', function () {
                             var val = $(this).val();
                             console.log("Filter change on column", columnIndex, "Value:", val);
-
-                            // Use regex search for exact match, escaping special characters
-                            // Anchor start (^) and end ($) to match the whole cell content exactly.
-                            // Escape regex special characters in the value.
-                             var escapedVal = $.fn.dataTable.util.escapeRegex(val);
-
-                             column
-                                .search(val ? '^' + escapedVal + '$' : '', true, false) // Use regex (true), smart search (false)
-                                .draw(); // Redraw the table
+                            var escapedVal = $.fn.dataTable.util.escapeRegex(val);
+                            column
+                                .search(val ? '^' + escapedVal + '$' : '', true, false)
+                                .draw();
                         });
                     });
                  } // end initComplete
             }); // end DataTable initialization
 
-             // Optional: If you want filters to re-populate if the table data *might* change dynamically
-             // without a full page reload (e.g., via AJAX), you might need to re-run the
-             // population logic within a draw callback or a custom event listener.
-             // For this Jinja template scenario (data loaded on page render), initComplete is sufficient.
+            // --- NEW: Event listeners for date inputs ---
+            // Re-draw the table whenever the date range changes
+            $('#startDate, #endDate').on('change', function() {
+                console.log("Date filter changed. Redrawing table.");
+                table.draw();
+            });
+            // --- END NEW ---
 
         }); // end document.ready
     </script>
