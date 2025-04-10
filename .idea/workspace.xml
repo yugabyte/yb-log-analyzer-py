@@ -4,7 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="6425d085-3c44-4d3a-be9c-6b4720dc1f71" name="Changes" comment="" />
+    <list default="true" id="6425d085-3c44-4d3a-be9c-6b4720dc1f71" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/TEMPLATES/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/TEMPLATES/index.html.j2" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/resources/Yugabyte-Logo-Dark BG-RGB.svg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -46,16 +52,25 @@
     "Python.log_analyzer_v2.executor": "Debug",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "main",
+    "git-widget-placeholder": "refactoring__index__html__with__jinja2__templates",
     "last_opened_file_path": "/Users/vidigalp/Code/tools/yb-log-analyzer-py",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/resources" />
+    </key>
+  </component>
   <component name="RunManager" selected="Python.log_analyzer">
     <configuration name="log_analyser" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
       <module name="yb-log-analyzer-py" />
@@ -158,7 +173,9 @@
       <workItem from="1743671762242" duration="8809000" />
       <workItem from="1743884578377" duration="2974000" />
       <workItem from="1744280238161" duration="649000" />
-      <workItem from="1744281709547" duration="6688000" />
+      <workItem from="1744281709547" duration="7947000" />
+      <workItem from="1744290047824" duration="1537000" />
+      <workItem from="1744292132951" duration="69000" />
     </task>
     <servers />
   </component>
@@ -220,29 +237,19 @@
           <option name="timeStamp" value="19" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/utils/helper.py</url>
-          <line>95</line>
-          <option name="timeStamp" value="23" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/log_analyzer.py</url>
-          <line>871</line>
+          <line>779</line>
           <option name="timeStamp" value="24" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/log_analyzer.py</url>
-          <line>907</line>
-          <option name="timeStamp" value="26" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/utils/helper.py</url>
-          <line>280</line>
-          <option name="timeStamp" value="30" />
+          <line>764</line>
+          <option name="timeStamp" value="32" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/log_analyzer.py</url>
-          <line>855</line>
-          <option name="timeStamp" value="32" />
+          <line>761</line>
+          <option name="timeStamp" value="33" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

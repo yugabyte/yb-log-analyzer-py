@@ -1,0 +1,2 @@
+colorama
+jinja2

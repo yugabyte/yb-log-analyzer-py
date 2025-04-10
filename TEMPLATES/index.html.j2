@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - YugabyteDB Log Analysis</title>
+    <!-- Link Google Font: Inter (Primary body font, fallback for headlines) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
+    <style>
+        /* YugabyteDB Color Palette Variables (Based on Guidelines) */
+        :root {
+            --yb-indigo: #1E154B; /* Primary Dark */
+            --yb-purple: #735AF5; /* Primary Accent */
+            --yb-orange: #FF5F3B; /* Primary Accent / Logomark */
+            --yb-white: #FFFFFF;
+            --yb-gray-1: #F5F5F7; /* Lightest Gray */
+            --yb-gray-3: #E5E4EB; /* Light Gray for borders */
+            --yb-gray-5: #C2C0CC; /* Medium Gray */
+            --yb-gray-9: #615D6E; /* Dark Gray for text */
+            --yb-gray-11: #282532; /* Darker Gray */
+            --yb-black: #121017; /* Near Black */
+
+            --font-primary: 'Inter', sans-serif;
+            /* Roobert is preferred for headlines, but Inter is a safe web fallback */
+            --font-headline: 'Inter', sans-serif; /* Use Inter SemiBold (600) */
+        }
+
+        /* Basic Reset & Body Styling */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            font-size: 100%; /* Base font size */
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: var(--font-primary);
+            font-weight: 400; /* Regular */
+            line-height: 1.6; /* Improved readability */
+            color: var(--yb-gray-11);
+            background-color: var(--yb-gray-1); /* Light gray background */
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* Header Styling */
+        .yb-header {
+            background-color: var(--yb-indigo); /* Dark background suits the specified logo */
+            color: var(--yb-white);
+            padding: 0.75rem 2rem; /* Adjusted padding slightly for image height */
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        /* Logo Link Container */
+        .yb-logo-link {
+            display: inline-flex; /* Helps align the image vertically */
+            align-items: center;
+            text-decoration: none;
+        }
+
+        /* SVG Logo Image Styling */
+        .yb-logo-img {
+            height: 32px; /* Adjust height as needed - SVG scales well */
+            width: auto; /* Maintain aspect ratio */
+            vertical-align: middle; /* Ensure proper alignment */
+        }
+
+        /* Main Content Container */
+        .container {
+            max-width: 1100px;
+            margin: 2rem auto; /* Centering and spacing */
+            padding: 1.5rem 2rem;
+            background-color: var(--yb-white);
+            border-radius: 8px; /* Softer corners */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); /* Subtle shadow */
+            flex-grow: 1; /* Takes up available space */
+        }
+
+        /* Page Title */
+        h2.page-title {
+            font-family: var(--font-headline);
+            font-weight: 600; /* SemiBold */
+            font-size: 1.75rem;
+            color: var(--yb-indigo);
+            margin-bottom: 1.5rem;
+            line-height: 1.3; /* Tighter leading for headlines */
+            border-bottom: 2px solid var(--yb-purple);
+            padding-bottom: 0.5rem;
+            display: inline-block;
+        }
+
+        /* Table Styling */
+        table.yb-table {
+            width: 100%;
+            border-collapse: collapse; /* Remove space between borders */
+            border: 1px solid var(--yb-gray-3); /* Softer main border */
+            border-radius: 4px; /* Slight rounding for table */
+            overflow: hidden; /* Ensures border-radius clips content */
+            font-size: 0.95rem;
+        }
+
+        /* Table Header */
+        table.yb-table th {
+            background-color: var(--yb-gray-1); /* Light background for header */
+            color: var(--yb-indigo);
+            font-family: var(--font-headline);
+            font-weight: 600; /* SemiBold */
+            text-align: left;
+            padding: 0.8rem 1rem;
+            border-bottom: 2px solid var(--yb-purple); /* Accent border */
+        }
+
+        /* Table Cells */
+        table.yb-table td {
+            padding: 0.8rem 1rem;
+            border-bottom: 1px solid var(--yb-gray-3); /* Horizontal lines */
+            vertical-align: middle; /* Align content vertically */
+        }
+
+        /* Zebra Striping for Readability */
+        table.yb-table tbody tr:nth-child(even) {
+            background-color: var(--yb-gray-1);
+        }
+
+        /* Hover Effect for Rows */
+        table.yb-table tbody tr:hover {
+            background-color: #e9e7f5; /* Slightly darker than gray-1, derived */
+        }
+
+        /* Remove bottom border for the last row */
+        table.yb-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Link Styling */
+        table.yb-table td a {
+            color: var(--yb-orange); /* Use brand orange for links */
+            text-decoration: none;
+            font-weight: 600; /* Make links stand out slightly */
+            transition: color 0.2s ease;
+        }
+
+        table.yb-table td a:hover,
+        table.yb-table td a:focus {
+            color: #e04a27; /* Darker shade of orange on hover */
+            text-decoration: underline;
+        }
+
+        /* Empty State Styling */
+        .empty-state td {
+            text-align: center;
+            color: var(--yb-gray-9);
+            padding: 2rem 1rem;
+            font-style: italic;
+        }
+
+        /* Footer Styling */
+        .yb-footer {
+            text-align: center;
+            padding: 1rem;
+            margin-top: 2rem;
+            font-size: 0.85rem;
+            color: var(--yb-gray-9);
+        }
+
+        /* Responsive Adjustments (Optional Simple Example) */
+        @media (max-width: 768px) {
+            .container {
+                margin: 1rem;
+                padding: 1rem;
+            }
+            h2.page-title {
+                font-size: 1.5rem;
+            }
+            table.yb-table th, table.yb-table td {
+                padding: 0.6rem 0.8rem;
+            }
+            .yb-header {
+                padding: 0.5rem 1rem; /* Adjust header padding */
+            }
+            .yb-logo-img {
+                 height: 28px; /* Slightly smaller logo on mobile */
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+    <header class="yb-header">
+        <!-- Link wrapping the logo -->
+        <a href="/" class="yb-logo-link" aria-label="YugabyteDB Home">
+            <!--
+                SVG Logo Implementation:
+                - src path assumes 'resources' is accessible from the web root.
+                - Adjust the path '/resources/...' based on your static file setup
+                  (e.g., it might be '/static/resources/...' or use a template function
+                  like url_for('static', filename='resources/Yugabyte-Logo-Dark BG-RGB.svg')).
+            -->
+            <img src="/resources/Yugabyte-Logo-Dark BG-RGB.svg"
+                 alt="YugabyteDB Logo"
+                 class="yb-logo-img">
+        </a>
+        <!-- Maybe add navigation or user info here if needed -->
+    </header>
+
+    <main class="container">
+        <h2 class="page-title">{{ title }}</h2>
+
+        <table class="yb-table">
+            <thead>
+                <tr>
+                    <th>Ticket Number</th>
+                    <th>Analysis File</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in analysis_items %}
+                <tr>
+                    <td>{{ item.case_number }}</td>
+                    <td><a href="{{ item.filename }}">{{ item.filename }}</a></td>
+                </tr>
+                {% else %}
+                <tr class="empty-state">
+                    <td colspan="2">No analysis files found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </main>
+
+    <footer class="yb-footer">
+        &copy; {% now "Y" %} Yugabyte, Inc. All rights reserved. <!-- Using Jinja's `now` tag for year -->
+    </footer>
+
+</body>
+</html>
