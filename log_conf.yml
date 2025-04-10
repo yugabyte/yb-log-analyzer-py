@@ -162,15 +162,19 @@ universe:
       pattern: "Table [a-f0-9]+ is undergoing DDL verification"
       solution: |
         This message is observed when customer using a preview `flag ysql_ddl_rollback_enabled` which may or may not work in this version because this version may not have all the other fixes which are related to this preview flag.
+
         - To resolve this follow the KB
+        
         **KB Article**: [Application Failure Due to DDL Verification State in YugabyteDB](https://support.yugabyte.com/hc/en-us/articles/35702194950029-Backup-or-Application-Failure-Due-to-DDL-Verification-State-in-YugabyteDB)
 
     - name: "Snapshot Too Old Error in YSQL can occur due to prefetch pg_authid"
-      pattern: "pg_sys_table_prefetcher\.cc.*Sys table prefetching is enabled but table \{[^}]+\} was not prefetched"
+      pattern: "pg_sys_table_prefetcher\\.cc.*Sys table prefetching is enabled but table \\{[^}]+\\} was not prefetched"
       solution: |
-        Running a query via ysqlsh results in a "Snapshot too old" error. This typically occurs due to missing prefetching of the system catalog table pg_authid.
+        This message is observed when customer using a preview `flag ysql_ddl_rollback_enabled` which may or may not work in this version because this version may not have all the other fixes which are related to this preview flag.
+
         - To resolve this follow the KB
-        **KB Article**: [Snapshot Too Old Error in YSQLSH](https://support.yugabyte.com/hc/en-us/articles/35704920488077-Snapshot-Too-Old-Error-in-YSQLSH)
+        
+        **KB Article**: [Application Failure Due to DDL Verification State in YugabyteDB](https://support.yugabyte.com/hc/en-us/articles/35702194950029-Backup-or-Application-Failure-Due-to-DDL-Verification-State-in-YugabyteDB)
 
 pg:
   log_messages:
