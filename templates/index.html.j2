@@ -11,9 +11,6 @@
 
     <!-- DataTables CSS -->
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
-    <!-- Optional: DataTables styling integration (e.g., Bootstrap 5)
-    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
-    -->
 
     <style>
         /* YugabyteDB Color Palette Variables */
@@ -34,228 +31,148 @@
         }
 
         /* Basic Reset & Body Styling */
-        *, *::before, *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         html { font-size: 100%; scroll-behavior: smooth; }
         body {
-            font-family: var(--font-primary);
-            font-weight: 400;
-            line-height: 1.6;
-            color: var(--yb-gray-11);
-            background-color: var(--yb-gray-1);
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
+            font-family: var(--font-primary); font-weight: 400; line-height: 1.6;
+            color: var(--yb-gray-11); background-color: var(--yb-gray-1);
+            padding: 0; display: flex; flex-direction: column; min-height: 100vh;
         }
 
         /* Header Styling */
         .yb-header {
-            background-color: var(--yb-indigo);
-            color: var(--yb-white);
-            padding: 0.75rem 2rem;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
+            background-color: var(--yb-indigo); color: var(--yb-white);
+            padding: 0.75rem 2rem; display: flex; align-items: center; gap: 1rem;
         }
         .yb-logo-link { display: inline-flex; align-items: center; text-decoration: none; }
         .yb-logo-img { height: 32px; width: auto; vertical-align: middle; }
 
         /* Main Content Container */
         .container {
-            max-width: 1100px; /* Adjusted max-width slightly for more filter space */
-            margin: 2rem auto;
-            padding: 1.5rem 2rem;
-            background-color: var(--yb-white);
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-            flex-grow: 1;
+            max-width: 1300px; /* Even wider to accommodate combined date group */
+            margin: 2rem auto; padding: 1.5rem 2rem;
+            background-color: var(--yb-white); border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); flex-grow: 1;
         }
 
         /* Page Title */
         h2.page-title {
-            font-family: var(--font-headline);
-            font-weight: 600;
-            font-size: 1.75rem;
-            color: var(--yb-indigo);
-            margin-bottom: 1.5rem;
-            line-height: 1.3;
-            border-bottom: 2px solid var(--yb-purple);
-            padding-bottom: 0.5rem;
+            font-family: var(--font-headline); font-weight: 600; font-size: 1.75rem;
+            color: var(--yb-indigo); margin-bottom: 1.5rem; line-height: 1.3;
+            border-bottom: 2px solid var(--yb-purple); padding-bottom: 0.5rem;
             display: inline-block;
         }
 
         /* Filter Controls Area */
         .filter-controls {
-            margin-bottom: 1.5rem;
-            display: flex;
-            flex-wrap: wrap; /* Allow wrapping on smaller screens */
-            gap: 1rem; /* Spacing between filter groups */
-            padding: 1rem;
-            background-color: var(--yb-gray-1);
-            border-radius: 4px;
-            border: 1px solid var(--yb-gray-3);
+            margin-bottom: 1.5rem; display: flex; flex-wrap: wrap;
+            gap: 1rem; padding: 1rem; background-color: var(--yb-gray-1);
+            border-radius: 4px; border: 1px solid var(--yb-gray-3);
+            align-items: center; /* Align items vertically */
         }
         .filter-group {
-            display: flex;
-            align-items: center;
-            flex-basis: 280px; /* Suggest a base width for each filter group */
-            flex-grow: 1; /* Allow groups to grow */
-            gap: 0.5rem; /* Space between label and input within a group */
+            display: flex; align-items: center;
+            flex-basis: 280px; /* Default base width for Ticket, File */
+            flex-grow: 1; /* Allow growing */
+            gap: 0.5rem; /* Default gap within group */
         }
+        /* --- NEW: Styling for the combined date range group --- */
+        .filter-group-daterange {
+            flex-basis: 550px; /* Increased base width to hold two inputs/labels */
+            /* It still uses flex-grow: 1 from .filter-group */
+        }
+        .filter-group-daterange label[for="endDate"] {
+             margin-left: 0.75rem; /* Add space before the "End:" label */
+        }
+        /* --- End NEW --- */
+
         .filter-controls label {
-            font-weight: 600;
-            color: var(--yb-indigo);
-            flex-shrink: 0; /* Prevent label from shrinking too much */
-            margin-bottom: 0; /* Reset margin if needed */
-            white-space: nowrap; /* Prevent label text wrapping */
+            font-weight: 600; color: var(--yb-indigo);
+            flex-shrink: 0; white-space: nowrap;
         }
         .filter-controls select,
-        .filter-controls input[type="date"] { /* Style both select and date inputs */
-            padding: 0.4rem 0.6rem;
-            border: 1px solid var(--yb-gray-5);
-            border-radius: 4px;
-            background-color: var(--yb-white);
-            font-family: var(--font-primary);
-            font-size: 0.9rem;
-            flex-grow: 1; /* Allow inputs to fill the group space */
-            min-width: 120px; /* Minimum width for inputs */
+        .filter-controls input[type="datetime-local"] {
+            padding: 0.4rem 0.6rem; border: 1px solid var(--yb-gray-5);
+            border-radius: 4px; background-color: var(--yb-white);
+            font-family: var(--font-primary); font-size: 0.9rem;
+            flex-grow: 1; /* Allow inputs to grow within their group */
+            min-width: 150px; /* Minimum width for usability */
+            height: 36px; /* Consistent height */
         }
-        /* Specific style for date input appearance if needed */
-        .filter-controls input[type="date"] {
-             /* Add specific styles if the browser default isn't ideal */
-             /* Example: Make it slightly taller if needed */
-             /* line-height: 1.4; */
+        /* Ensure inputs within the date range group don't grow excessively */
+        .filter-group-daterange input[type="datetime-local"] {
+             flex-grow: 1; /* Let them share the space */
+             /* min-width: 180px; /* Adjust if needed */
         }
 
 
-        /* Table Styling */
-        table.yb-table {
-            width: 100%;
-            border-collapse: collapse;
-            border: 1px solid var(--yb-gray-3);
-            border-radius: 4px;
-            overflow: hidden; /* Needed for border-radius clipping */
-            font-size: 0.95rem;
+        /* Reset Button Styling */
+        .filter-group-button {
+             flex-grow: 0; flex-basis: auto;
+             margin-left: auto; /* Push button towards the right on wider screens */
+             padding-left: 1rem; /* Add some space before the button */
+        }
+        .yb-button {
+            padding: 0.4rem 1rem; border-radius: 4px;
+            font-family: var(--font-primary); font-size: 0.9rem; font-weight: 600;
+            cursor: pointer; text-align: center; border: 1px solid transparent;
+            transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+            height: 36px; line-height: 1.4;
+        }
+        .yb-button-secondary {
+            background-color: var(--yb-gray-3); border-color: var(--yb-gray-5); color: var(--yb-gray-11);
+        }
+        .yb-button-secondary:hover, .yb-button-secondary:focus {
+            background-color: var(--yb-gray-5); border-color: var(--yb-gray-9); color: var(--yb-black); outline: none;
         }
 
-        /* Table Header */
-        table.yb-table thead th { /* Applied by DataTables */
-            background-color: var(--yb-gray-1);
-            color: var(--yb-indigo);
-            font-family: var(--font-headline);
-            font-weight: 600;
-            text-align: left;
-            padding: 0.8rem 1rem;
-            border-bottom: 2px solid var(--yb-purple);
-            cursor: pointer; /* Indicate sortable columns */
-            position: relative; /* Needed for sorting icons */
-            padding-right: 25px; /* Space for sorting icons */
-        }
 
-         /* DataTables Sorting Icons Alignment (Basic) */
-        table.dataTable thead .sorting,
-        table.dataTable thead .sorting_asc,
-        table.dataTable thead .sorting_desc {
-            background-position: right 0.5rem center; /* Adjust icon position */
-            background-repeat: no-repeat;
-            background-size: 1em 1em; /* Adjust icon size if needed */
-        }
-        /* You might need more specific CSS to style the default DataTables icons
-           or use a theme integration (like Bootstrap) which styles them */
-
-
-        /* Table Cells */
-        table.yb-table tbody td {
-            padding: 0.8rem 1rem;
-            border-bottom: 1px solid var(--yb-gray-3);
-            vertical-align: middle;
-        }
-
-        /* Zebra Striping */
-        table.yb-table tbody tr:nth-child(even) {
-            background-color: var(--yb-gray-1);
-        }
-        /* DataTables might override this, check if needed */
+        /* Table Styling (unchanged) */
+        table.yb-table { width: 100%; border-collapse: collapse; border: 1px solid var(--yb-gray-3); border-radius: 4px; overflow: hidden; font-size: 0.95rem; }
+        table.yb-table thead th { background-color: var(--yb-gray-1); color: var(--yb-indigo); font-family: var(--font-headline); font-weight: 600; text-align: left; padding: 0.8rem 1rem; border-bottom: 2px solid var(--yb-purple); cursor: pointer; position: relative; padding-right: 25px; }
+        table.dataTable thead .sorting, table.dataTable thead .sorting_asc, table.dataTable thead .sorting_desc { background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1em 1em; }
+        table.yb-table tbody td { padding: 0.8rem 1rem; border-bottom: 1px solid var(--yb-gray-3); vertical-align: middle; word-break: break-all; }
         table.dataTable.stripe tbody tr.odd { background-color: var(--yb-white); }
         table.dataTable.stripe tbody tr.even { background-color: var(--yb-gray-1); }
-
-
-        /* Hover Effect */
-         table.yb-table tbody tr:hover,
-         table.dataTable.hover tbody tr:hover { /* Target DataTables hover class */
-            background-color: #e9e7f5; /* Slightly darker */
-        }
-
-        /* Remove bottom border for the last row (DataTables might add pagination, making this less relevant) */
-        /* table.yb-table tbody tr:last-child td { border-bottom: none; } */
-
-        /* Link Styling */
-        table.yb-table td a {
-            color: var(--yb-orange);
-            text-decoration: none;
-            font-weight: 600;
-            transition: color 0.2s ease;
-        }
-        table.yb-table td a:hover,
-        table.yb-table td a:focus {
-            color: #e04a27;
-            text-decoration: underline;
-        }
-
-        /* Empty State Styling (DataTables has its own) */
-        .dataTables_empty { /* Style DataTables empty message */
-            text-align: center;
-            color: var(--yb-gray-9);
-            padding: 2rem 1rem !important; /* Use !important cautiously if needed */
-            font-style: italic;
-        }
-        /* Hide original empty state if DataTables is active */
+        table.dataTable.hover tbody tr:hover { background-color: #e9e7f5; }
+        table.yb-table td a { color: var(--yb-orange); text-decoration: none; font-weight: 600; transition: color 0.2s ease; }
+        table.yb-table td a:hover, table.yb-table td a:focus { color: #e04a27; text-decoration: underline; }
+        .dataTables_empty { text-align: center; color: var(--yb-gray-9); padding: 2rem 1rem !important; font-style: italic; }
         .yb-table .empty-state { display: none; }
 
-
         /* Footer Styling */
-        .yb-footer {
-            text-align: center;
-            padding: 1rem;
-            margin-top: 2rem;
-            font-size: 0.85rem;
-            color: var(--yb-gray-9);
-        }
+        .yb-footer { text-align: center; padding: 1rem; margin-top: 2rem; font-size: 0.85rem; color: var(--yb-gray-9); }
 
-        /* DataTables elements styling (optional, adjust as needed) */
-        .dataTables_wrapper .dataTables_length,
-        .dataTables_wrapper .dataTables_filter, /* Hiding default global filter */
-        .dataTables_wrapper .dataTables_info,
-        .dataTables_wrapper .dataTables_paginate {
-            padding: 0.5rem 0; /* Add some spacing */
-            font-size: 0.9rem;
-        }
-        /* HIDE the default global search input as we use column filters */
-        .dataTables_filter {
-            display: none;
-        }
+        /* DataTables elements styling */
+        .dataTables_wrapper .dataTables_length, .dataTables_wrapper .dataTables_filter, .dataTables_wrapper .dataTables_info, .dataTables_wrapper .dataTables_paginate { padding: 0.5rem 0; font-size: 0.9rem; }
+        .dataTables_filter { display: none; }
 
         /* Responsive Adjustments */
-        @media (max-width: 992px) { /* Adjust breakpoint if needed */
-             .filter-group {
-                 flex-basis: calc(50% - 1rem); /* Two columns on medium screens */
-             }
+        /* Adjust breakpoints and basis values as needed */
+        @media (max-width: 1250px) { /* Example breakpoint */
+             .filter-group { flex-basis: calc(50% - 1rem); } /* Two columns for standard groups */
+             .filter-group-daterange { flex-basis: 100%; order: 3; } /* Date range takes full width below */
+             .filter-group-button { flex-basis: 100%; order: 4; margin-left: 0; padding-left: 0; margin-top: 0.5rem; } /* Button below date range */
         }
         @media (max-width: 768px) {
             .container { margin: 1rem; padding: 1rem; }
             h2.page-title { font-size: 1.5rem; }
-            /* DataTables handles responsiveness better, but adjust padding if needed */
             table.yb-table th, table.yb-table td { padding: 0.6rem 0.8rem; }
             .yb-header { padding: 0.5rem 1rem; }
             .yb-logo-img { height: 28px; }
             .filter-controls { flex-direction: column; align-items: stretch; }
-            .filter-group { flex-basis: auto; width: 100%; } /* Stack filters vertically */
-            .filter-controls select,
-            .filter-controls input[type="date"] { width: auto; } /* Let flex-grow handle width */
+            /* All groups stack vertically */
+            .filter-group, .filter-group-daterange, .filter-group-button {
+                 flex-basis: auto; width: 100%; order: 0; /* Reset order */
+                 margin-left: 0; padding-left: 0; margin-top: 0;
+            }
+             /* Adjust spacing within combined date group on mobile */
+             .filter-group-daterange {
+                 flex-wrap: wrap; /* Allow wrapping inside the date group itself */
+             }
+             .filter-group-daterange label { width: 100%; margin-bottom: 0.25rem; margin-left: 0 !important; } /* Labels stack above inputs */
+             .filter-group-daterange input[type="datetime-local"] { min-width: calc(50% - 0.25rem); width: calc(50% - 0.25rem); } /* Inputs side-by-side below labels */
+             .filter-group-button { margin-top: 1rem; }
         }
 
     </style>
@@ -264,10 +181,7 @@
 
     <header class="yb-header">
         <a href="/" class="yb-logo-link" aria-label="YugabyteDB Home">
-            <img src="/resources/Yugabyte-Logo-Dark BG-RGB.svg"
-                 alt="YugabyteDB Logo"
-                 class="yb-logo-img">
-            <!-- Adjust src path as needed for your framework -->
+            <img src="/resources/Yugabyte-Logo-Dark BG-RGB.svg" alt="YugabyteDB Logo" class="yb-logo-img">
             <!-- Flask example: {% raw %}src="{{ url_for('static', filename='resources/Yugabyte-Logo-Dark BG-RGB.svg') }}"{% endraw %} -->
         </a>
     </header>
@@ -277,39 +191,46 @@
 
         <!-- Filter Controls -->
         <div class="filter-controls">
+             <!-- Ticket Number Filter -->
              <div class="filter-group">
                 <label for="ticketFilter">Ticket Number:</label>
                 <select id="ticketFilter" data-column-index="0">
                     <option value="">All Tickets</option>
-                    <!-- Options will be populated by JavaScript -->
+                    <!-- Options populated by JS -->
                 </select>
             </div>
+             <!-- Analysis File Filter -->
              <div class="filter-group">
                 <label for="fileFilter">Analysis File:</label>
                 <select id="fileFilter" data-column-index="1">
                     <option value="">All Files</option>
-                    <!-- Options will be populated by JavaScript -->
+                    <!-- Options populated by JS -->
                 </select>
             </div>
-            <!-- NEW: Date Range Filter -->
-            <div class="filter-group">
-                <label for="startDate">Start Date:</label>
-                <input type="date" id="startDate" data-column-index="2"> <!-- Added data-column-index for consistency -->
+
+            <!-- COMBINED Date/Time Range Filter -->
+            <div class="filter-group filter-group-daterange">
+                <label for="startDate">Start:</label> <!-- Shortened label -->
+                <input type="datetime-local" id="startDate" data-column-index="2">
+
+                <label for="endDate">End:</label> <!-- Shortened label -->
+                <input type="datetime-local" id="endDate" data-column-index="2">
             </div>
-            <div class="filter-group">
-                <label for="endDate">End Date:</label>
-                <input type="date" id="endDate" data-column-index="2"> <!-- Added data-column-index for consistency -->
+            <!-- END COMBINED -->
+
+            <!-- Reset Button -->
+            <div class="filter-group-button">
+                 <button type="button" id="resetFiltersBtn" class="yb-button yb-button-secondary">Reset Filters</button>
             </div>
-            <!-- END NEW -->
+            <!-- END Reset Button -->
         </div>
 
-        <!-- Add an ID to the table for DataTables targeting -->
-        <table id="analysisTable" class="yb-table display stripe hover"> <!-- Add DataTables classes -->
+        <table id="analysisTable" class="yb-table display stripe hover">
             <thead>
                 <tr>
-                    <th>Ticket Number</th> <!-- DataTables makes these clickable for sorting -->
+                    <th>Ticket Number</th>
                     <th>Analysis File</th>
-                    <th>Analysis Date</th> <!-- Target column for date filter (index 2) -->
+                    <th>Analysis Date</th> <!-- Target column index 2 -->
                 </tr>
             </thead>
             <tbody>
@@ -317,14 +238,12 @@
                 <tr>
                     <td>{{ item.case_number }}</td>
                     <td><a href="{{ item.filename }}">{{ item.filename }}</a></td>
-                    <!-- Ensure this outputs in a consistent format, ideally YYYY-MM-DD HH:MM:SS or just YYYY-MM-DD -->
+                    <!-- Ensure format is YYYY-MM-DD HH:MM:SS or similar -->
                     <td>{{ item.analysis_date }}</td>
                 </tr>
                 {% else %}
-                <!-- This row might be hidden by DataTables if the table is empty on load.
-                     DataTables provides its own empty message. -->
                 <tr class="empty-state">
-                    <td colspan="3">No analysis files found (Initial load).</td> <!-- Updated colspan -->
+                    <td colspan="3">No analysis files found (Initial load).</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -335,126 +254,66 @@
         &copy; {{ current_year }} Yugabyte, Inc. All rights reserved.
     </footer>
 
-    <!-- jQuery (Required by DataTables standard distribution) -->
+    <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <!-- DataTables JavaScript -->
     <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-    <!-- Optional: DataTables Bootstrap 5 integration JS
-    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
-    -->
 
     <script>
+        // --- JavaScript remains identical to the previous version ---
+        // It correctly targets #startDate and #endDate by ID,
+        // regardless of how they are grouped in the HTML.
         $(document).ready(function() {
 
-            // --- NEW: Date Range Filter Logic ---
-            // Custom filtering function which will search data in date range
-            // Needs to be defined *before* DataTables initialization if referenced directly,
-            // but here we define it first and then use it via event listeners.
+            // --- Date/Time Range Filter Logic ---
             $.fn.dataTable.ext.search.push(
                 function( settings, data, dataIndex ) {
-                    // Check if the search is for the correct table
-                    // (useful if you have multiple tables on one page)
-                    if ( settings.nTable.id !== 'analysisTable' ) {
-                        return true;
-                    }
-
-                    var minStr = $('#startDate').val(); // Get value from start date input (YYYY-MM-DD)
-                    var maxStr = $('#endDate').val();   // Get value from end date input (YYYY-MM-DD)
-                    var dateStr = data[2] || ''; // Get content from the 'Analysis Date' column (index 2)
-
-                    // --- Handle rows with no valid date ---
-                    // If the cell is empty or 'None', only show it if *no* date filter is applied.
-                    if (!dateStr || dateStr.toLowerCase() === 'none') {
-                        return !minStr && !maxStr; // Show if both filters are empty, hide otherwise
-                    }
-
-                    // --- Extract the date part (YYYY-MM-DD) from the cell ---
-                    // Assumes format "YYYY-MM-DD HH:MM:SS" or just "YYYY-MM-DD"
-                    var datePart = dateStr.split(' ')[0];
-
-                    // Basic validation of the extracted date format
-                    if (!/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
-                         console.warn("Invalid date format found in table:", dateStr);
-                         return !minStr && !maxStr; // Treat invalid format like 'None'
-                    }
-
-                    // --- Perform the range comparison ---
-                    // Using string comparison works reliably for YYYY-MM-DD format
-
-                    // Check Start Date: If minStr exists and the cell date is earlier, hide row
-                    if (minStr && datePart < minStr) {
-                        return false;
-                    }
-
-                    // Check End Date: If maxStr exists and the cell date is later, hide row
-                    if (maxStr && datePart > maxStr) {
-                        return false;
-                    }
-
-                    // If we reach here, the date is within the range (or filters are not set)
+                    if ( settings.nTable.id !== 'analysisTable' ) return true;
+                    var minInputStr = $('#startDate').val(); var maxInputStr = $('#endDate').val();
+                    var cellDateTimeStr = data[2] || '';
+                    if (!cellDateTimeStr || cellDateTimeStr.toLowerCase() === 'none') return !minInputStr && !maxInputStr;
+                    var comparableMin = minInputStr ? minInputStr.replace('T', ' ') : null;
+                    var comparableMax = maxInputStr ? maxInputStr.replace('T', ' ') : null;
+                    var comparableCell = null;
+                    var cellMatch = cellDateTimeStr.match(/^(\d{4}-\d{2}-\d{2})\s?(\d{2}:\d{2})?:\d{2}?/);
+                    if (cellMatch) { comparableCell = cellMatch[1]; if (cellMatch[2]) comparableCell += ' ' + cellMatch[2]; }
+                    else if (/^\d{4}-\d{2}-\d{2}$/.test(cellDateTimeStr.trim())) { comparableCell = cellDateTimeStr.trim(); }
+                    if (!comparableCell) { console.warn("Could not parse cell date/time:", cellDateTimeStr); return !minInputStr && !maxInputStr; }
+                    if (comparableMin && comparableCell < comparableMin) return false;
+                    if (comparableMax && comparableCell > comparableMax) return false;
                     return true;
                 }
             );
-            // --- END NEW: Date Range Filter Logic ---
-
 
             // Initialize DataTables
             var table = $('#analysisTable').DataTable({
-                searching: true, // Keep internal search enabled for filters
-                language: {
-                    emptyTable: "No analysis files matching filters found.",
-                    zeroRecords: "No matching analysis files found",
-                },
-                order: [[0, 'asc']], // Sort by first column (index 0) ascending
-                columnDefs: [
-                    // Make the date column (index 2) type 'date' for potentially better sorting
-                    // Note: This relies on the date format being consistently parseable by DataTables.
-                    // YYYY-MM-DD HH:MM:SS or YYYY-MM-DD should work.
-                    { type: 'date', targets: 2 }
-                ],
+                searching: true, language: { emptyTable: "No analysis files matching filters found.", zeroRecords: "No matching analysis files found" },
+                order: [[2, 'desc']], columnDefs: [ { type: 'date', targets: 2 } ],
                 initComplete: function () {
-                    console.log("DataTables initComplete triggered.");
-                    this.api().columns([0, 1]).every(function () { // Target columns 0 and 1 for dropdowns
-                        var column = this;
-                        var columnIndex = column.index();
-                        var select = $('select[data-column-index="' + columnIndex + '"]');
-
-                        if (select.length === 0) {
-                             console.warn("No select found for column index:", columnIndex);
-                             return;
-                         }
-                        console.log("Processing column index for dropdown:", columnIndex);
-
-                        var uniqueData = column.data().unique().sort().toArray();
-                        select.find('option:not(:first-child)').remove();
+                    console.log("DataTables initComplete."); var api = this.api();
+                    api.columns([0, 1]).every(function () {
+                        var column = this; var columnIndex = column.index(); var select = $('select[data-column-index="' + columnIndex + '"]'); if (select.length === 0) return;
+                        select.find('option:not(:first-child)').remove(); var uniqueData = column.data().unique().sort().toArray();
                         uniqueData.forEach(function (d) {
-                            var cleanData = $('<div>').text(d).html();
-                            if (cleanData && cleanData.toLowerCase() !== 'none') { // Avoid adding 'None' as a filter option
-                                select.append('<option value="' + cleanData + '">' + cleanData + '</option>');
-                            }
-                        });
-
-                        select.off('change').on('change', function () {
-                            var val = $(this).val();
-                            console.log("Filter change on column", columnIndex, "Value:", val);
-                            var escapedVal = $.fn.dataTable.util.escapeRegex(val);
-                            column
-                                .search(val ? '^' + escapedVal + '$' : '', true, false)
-                                .draw();
+                            var displayValue = d; if (columnIndex === 1 && d) { displayValue = $(d).text(); }
+                            var cleanData = displayValue ? $('<div>').text(displayValue).html() : '';
+                            if (cleanData && cleanData.toLowerCase() !== 'none') { select.append($('<option>', { value: cleanData, text: cleanData })); }
                         });
                     });
-                 } // end initComplete
-            }); // end DataTable initialization
-
-            // --- NEW: Event listeners for date inputs ---
-            // Re-draw the table whenever the date range changes
-            $('#startDate, #endDate').on('change', function() {
-                console.log("Date filter changed. Redrawing table.");
-                table.draw();
+                    $('select[data-column-index="0"], select[data-column-index="1"]').off('change').on('change', function () {
+                        var columnIndex = $(this).data('column-index'); var val = $(this).val(); var escapedVal = $.fn.dataTable.util.escapeRegex(val || '');
+                        console.log("Dropdown filter change on column", columnIndex, "Value:", val);
+                        if (columnIndex === 1) { api.column(columnIndex).search(escapedVal, true, false).draw(); }
+                        else { api.column(columnIndex).search(val ? '^' + escapedVal + '$' : '', true, false).draw(); }
+                    });
+                    $('#startDate, #endDate').off('change').on('change', function() { console.log("Date/Time filter changed."); api.draw(); });
+                    $('#resetFiltersBtn').off('click').on('click', function() {
+                        console.log("Resetting filters."); $('#ticketFilter, #fileFilter').val(''); $('#startDate, #endDate').val('');
+                        api.columns([0, 1]).search(''); api.draw();
+                    });
+                 }
             });
-            // --- END NEW ---
-
-        }); // end document.ready
+        });
     </script>
 
 </body>

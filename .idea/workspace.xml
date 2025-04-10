@@ -7,6 +7,7 @@
     <list default="true" id="6425d085-3c44-4d3a-be9c-6b4720dc1f71" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/templates/index.html.j2" beforeDir="false" afterPath="$PROJECT_DIR$/templates/index.html.j2" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/helper.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/helper.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -71,7 +72,7 @@
       <recent name="$PROJECT_DIR$/resources" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.render">
+  <component name="RunManager" selected="Python.log_analyzer">
     <configuration name="log_analyser" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
       <module name="yb-log-analyzer-py" />
       <option name="ENV_FILES" value="" />
@@ -111,7 +112,7 @@
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/log_analyzer.py" />
-      <option name="PARAMETERS" value="-d $USER_HOME$/work/cases/13318/2025-03-04T21_08_33 -T &quot;0101 00:00&quot; -t &quot;1231 00:00&quot;" />
+      <option name="PARAMETERS" value="-d $USER_HOME$/work/cases/13110 -T &quot;0101 00:00&quot; -t &quot;1231 00:00&quot;" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
@@ -190,8 +191,8 @@
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.render" />
         <item itemvalue="Python.log_analyzer" />
+        <item itemvalue="Python.render" />
         <item itemvalue="Python tests.Python tests for test_zendesk_utils.test_extract_zendesk_ticket_id" />
         <item itemvalue="Python.log_analyzer_v2" />
       </list>
@@ -220,7 +221,7 @@
       <workItem from="1744290047824" duration="1537000" />
       <workItem from="1744292132951" duration="211000" />
       <workItem from="1744292348821" duration="5487000" />
-      <workItem from="1744297881893" duration="5685000" />
+      <workItem from="1744297881893" duration="7209000" />
     </task>
     <servers />
   </component>
@@ -332,8 +333,8 @@
     </watches-manager>
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/yb_log_analyzer_py$render.coverage" NAME="render Coverage Results" MODIFIED="1744306301497" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/utils" />
-    <SUITE FILE_PATH="coverage/yb_log_analyzer_py$log_analyzer.coverage" NAME="log_analyzer Coverage Results" MODIFIED="1744298949979" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/yb_log_analyzer_py$render.coverage" NAME="render Coverage Results" MODIFIED="1744307895950" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/utils" />
+    <SUITE FILE_PATH="coverage/yb_log_analyzer_py$log_analyzer.coverage" NAME="log_analyzer Coverage Results" MODIFIED="1744307878527" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/yb_log_analyzer_py$log_analyzer_v2.coverage" NAME="log_analyzer_v2 Coverage Results" MODIFIED="1743885310164" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/yb_log_analyzer_py$.coverage" NAME=" Coverage Results" MODIFIED="1744294860066" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/tests" />
   </component>
