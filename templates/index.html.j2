@@ -127,7 +127,7 @@
         }
 
 
-        /* Table Styling (unchanged) */
+        /* Table Styling */
         table.yb-table { width: 100%; border-collapse: collapse; border: 1px solid var(--yb-gray-3); border-radius: 4px; overflow: hidden; font-size: 0.95rem; }
         table.yb-table thead th { background-color: var(--yb-gray-1); color: var(--yb-indigo); font-family: var(--font-headline); font-weight: 600; text-align: left; padding: 0.8rem 1rem; border-bottom: 2px solid var(--yb-purple); cursor: pointer; position: relative; padding-right: 25px; }
         table.dataTable thead .sorting, table.dataTable thead .sorting_asc, table.dataTable thead .sorting_desc { background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1em 1em; }
@@ -260,9 +260,6 @@
     <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
 
     <script>
-        // --- JavaScript remains identical to the previous version ---
-        // It correctly targets #startDate and #endDate by ID,
-        // regardless of how they are grouped in the HTML.
         $(document).ready(function() {
 
             // --- Date/Time Range Filter Logic ---
