@@ -14,6 +14,66 @@ from config import DUMP_DIR
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
+
+
+def get_analysis_date_from_path(relative_path: str) -> str | None:
+  """
+  Extracts the date and time from a specific filename pattern and formats it.
+
+  The function expects a filename within the path that contains a date/time
+  string in the format 'YYYY-MM-DD-HH-MM-SS' immediately followed by
+  '_analysis.html'. It can handle optional prefixes before the date/time string.
+
+  Args:
+    relative_path: The string containing the filename (can be a full or relative path).
+                     Examples: '13318-2025-04-10-15-27-48_analysis.html',
+                               'results/2025-04-10-16-29-10_analysis.html'
+
+  Returns:
+    A formatted date and time string 'YYYY-MM-DD HH:MM:SS' if the
+    pattern is found and represents a valid date/time.
+    Returns None if the pattern is not found or the extracted string
+    cannot be parsed into a valid date/time.
+  """
+  # Extract the filename from the path in case directories are included
+  filename = os.path.basename(relative_path)
+
+  # Regular expression to find the date/time pattern:
+  # (\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}) : Captures the date/time string
+  #   \d{4} : Year (4 digits)
+  #   -       : Hyphen separator
+  #   \d{2} : Month (2 digits)
+  #   -       : Hyphen separator
+  #   \d{2} : Day (2 digits)
+  #   -       : Hyphen separator
+  #   \d{2} : Hour (2 digits)
+  #   -       : Hyphen separator
+  #   \d{2} : Minute (2 digits)
+  #   -       : Hyphen separator
+  #   \d{2} : Second (2 digits)
+  # _analysis\.html : Matches the literal string "_analysis.html" at the end
+  #                   (the dot is escaped with \.)
+  pattern = r"(\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2})_analysis\.html"
+
+  match = re.search(pattern, filename)
+
+  if match:
+    datetime_str_hyphens = match.group(1) # Get the captured date/time string
+    try:
+      # Parse the string using its specific format with hyphens
+      dt_object = datetime.datetime.strptime(datetime_str_hyphens, '%Y-%m-%d-%H-%M-%S')
+      # Format the datetime object into the desired output string
+      formatted_date = dt_object.strftime('%Y-%m-%d %H:%M:%S')
+      return formatted_date
+    except ValueError:
+      # This might happen if the regex matches something that isn't a real date
+      # (e.g., '2025-13-40-25-70-80'), although unlikely with this specific pattern.
+      print(f"Warning: Matched string '{datetime_str_hyphens}' is not a valid date/time.")
+      return None
+  else:
+    # The pattern was not found in the filename
+    return None
+
 def extract_zendesk_ticket_id(file_path_repr: str) -> str | None:
     """
     Extracts the Zendesk ticket ID from a file path string representation.
@@ -115,9 +175,12 @@ def prepare_template_data(
             # This ensures links in the index.html work correctly.
             relative_path = os.path.relpath(file_path.resolve(), output_dir.resolve())
 
+            analysis_date = get_analysis_date_from_path(relative_path)
+
             analysis_items.append({
                 "case_number": ticket_id if ticket_id is not None else "N/A",
-                "filename": relative_path
+                "filename": relative_path,
+                "analysis_date": analysis_date
             })
             logging.debug(f"Processed {file_path}: Ticket ID={ticket_id}, Relative Path={relative_path}")
 

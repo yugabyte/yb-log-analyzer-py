@@ -284,6 +284,7 @@
                 <tr>
                     <th>Ticket Number</th> <!-- DataTables makes these clickable for sorting -->
                     <th>Analysis File</th>
+                    <th>Analysis Date</th>
                 </tr>
             </thead>
             <tbody>
@@ -291,6 +292,7 @@
                 <tr>
                     <td>{{ item.case_number }}</td>
                     <td><a href="{{ item.filename }}">{{ item.filename }}</a></td>
+                    <td>{{ item.analysis_date }}</td>
                 </tr>
                 {% else %}
                 <!-- This row might be hidden by DataTables if the table is empty on load.
