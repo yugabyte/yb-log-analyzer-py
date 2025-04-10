@@ -23,6 +23,9 @@ import tarfile
 import gzip
 import json
 
+from config import DUMP_DIR
+from utils.helper import extract_zendesk_ticket_id
+
 class ColoredHelpFormatter(argparse.RawTextHelpFormatter):
     def _get_help_string(self, action):
         return Fore.GREEN + super()._get_help_string(action) + Style.RESET_ALL
@@ -759,13 +762,16 @@ if __name__ == "__main__":
     logger.info("Analysis complete. Results are in " + outputFile)
 
     # if hostname == "lincoln" then copy file to directory /tmp
-    if os.uname()[1] == "lincoln":
+    if os.uname()[1] == "lincoln" or os.uname()[1] == "Pedros-MacBook-Pro.local":
         # Get obsolute path of the args.directory
         logDir = os.path.abspath(args.directory) if args.directory else os.path.abspath(args.log_files[0])
         caseNumber = logDir.split("/")[2]
-        os.system("cp " + outputFile + " /home/support/logs_analyzer_dump/" + caseNumber + "-" + outputFile)
+        caseNumber = extract_zendesk_ticket_id(logDir)
+        #os.system("cp " + outputFile + " /home/support/logs_analyzer_dump/" + caseNumber + "-" + outputFile)
+        command_str = f"cp {outputFile} {DUMP_DIR}/{caseNumber}-{outputFile}" # Regardless of where the command is issued, if user name is lincoln, we send a copy of the file to 'DUMP_DIR'
+        os.system(command_str)
         logger.info("⌘+Click 👉👉 http://lincoln:7777/" + caseNumber + "-" + outputFile)
-        listOfFiles = os.listdir("/home/support/logs_analyzer_dump/")
+        listOfFiles = os.listdir(DUMP_DIR)
         content = "<table style='border-collapse: collapse; border: 1px solid black;'>"
         content += "<tr><td style='border: 1px solid black; padding: 5px;'> Ticket Number </td><td style='border: 1px solid black; padding: 5px;'> Analysis </td></tr>"
         open("/home/support/logs_analyzer_dump/index.html", "w").write("<h2> List of analyzed files </h2>")
@@ -774,8 +780,8 @@ if __name__ == "__main__":
                 caseNumber = file.split("-")[0]
                 content += "<tr><td> " + caseNumber + " </td><td> <a href='" + file + "'>" + file + "</a> </td></tr>"
         content += "</table>"
-        if os.path.exists("/home/support/logs_analyzer_dump/index.html"):
-            os.remove("/home/support/logs_analyzer_dump/index.html")
-        open("/home/support/logs_analyzer_dump/index.html", "a").write(content)
+        if os.path.exists(f"{DUMP_DIR}/index.html"):
+            os.remove(f"{DUMP_DIR}/index.html")
+        open(f"{DUMP_DIR}/index.html", "a").write(content)
     else:
         logger.info("⌘+Click 👉👉 file://" + os.path.abspath(outputFile) + " to view the analysis")

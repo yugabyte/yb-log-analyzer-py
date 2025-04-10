@@ -1,2 +1,4 @@
 colorama
 jinja2
+pyyaml
+tabulate
