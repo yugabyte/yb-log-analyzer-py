@@ -15,7 +15,7 @@ assignees: pgyogesh
 
 [Add the regex pattern that can be used to match the log message, such as "Soft memory limit exceeded".]
 
-## Solution
+## Solution or troubleshooting tips
 
 [Add a solution for the issue that's described by the log message, such as "This typically means that we have overloaded system.
     Check this KB for more details: https://support.yugabyte.com/hc/en-us/articles/4403688844045-Throttling-mechanism-in-YugaByte-TServer-due-to-high-Memory-Usage-"]
