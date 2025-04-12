@@ -5,24 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="6425d085-3c44-4d3a-be9c-6b4720dc1f71" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/log_analyzer_v3.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/log_parser/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/log_parser/patterns.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/cmd_line_details.html.j2" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/gflag_data.html.j2" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/utils/arg_parser_helper.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/utils/input_helper.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/utils/log_analysis_helper.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/utils/metadata.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/analyzer_lib.py" beforeDir="false" afterPath="$PROJECT_DIR$/analyzer_lib.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/config.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/log_analyzer.py" beforeDir="false" afterPath="$PROJECT_DIR$/log_analyzer.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/log_analyzer_v2.py" beforeDir="false" afterPath="$PROJECT_DIR$/log_analyzer_v2.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/log_lib.py" beforeDir="false" afterPath="$PROJECT_DIR$/log_lib.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/render.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/render.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -275,7 +259,7 @@
       <workItem from="1744297881893" duration="11253000" />
       <workItem from="1744363023361" duration="2093000" />
       <workItem from="1744368542370" duration="17560000" />
-      <workItem from="1744454757737" duration="16340000" />
+      <workItem from="1744454757737" duration="16452000" />
     </task>
     <servers />
   </component>

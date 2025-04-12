@@ -13,3 +13,6 @@ analyzer.log
 index.html
 hagen_ai.json
 log_files_metadata.json
+/output_files
+
+.idea/
