@@ -12,6 +12,9 @@ from analyzer_lib import (
     barChart1,
     barChart2,
 )
+
+from jinja2 import Environment, FileSystemLoader
+
 from log_lib import (
     getTimeFromLog,
     getFileMetadata,
@@ -21,6 +24,7 @@ from log_lib import (
 )
 from collections import OrderedDict
 import logging
+from loguru import logger
 import datetime
 import argparse
 import re
@@ -34,6 +38,9 @@ import sys
 import itertools
 import time
 import threading
+
+from utils.input_helper import parse_arguments
+from utils.render import generate_index_html
 
 
 class ColoredHelpFormatter(argparse.RawTextHelpFormatter):
@@ -69,45 +76,8 @@ class ColoredHelpFormatter(argparse.RawTextHelpFormatter):
         return Fore.LIGHTCYAN_EX + super()._format_args(action, default_metavar) + Style.RESET_ALL
 
 
-# Command line arguments
-parser = argparse.ArgumentParser(description="Log Analyzer for YugabyteDB logs", formatter_class=ColoredHelpFormatter)
-parser.add_argument("-d", "--directory", help="Directory containing log files")
-parser.add_argument("-s", "--support_bundle", help="Support bundle file name")
-parser.add_argument("--types", metavar="LIST",
-                    help="List of log types to analyze \n Example: --types 'ms,ybc' \n Default: --types 'pg,ts,ms'")
-parser.add_argument("-n", "--nodes", metavar="LIST", help="List of nodes to analyze \n Example: --nodes 'n1,n2'")
-parser.add_argument("-o", "--output", metavar="FILE", dest="output_file", help="Output file name")
-parser.add_argument("-p", "--parallel", metavar="N", dest='numThreads', default=5, type=int,
-                    help="Run in parallel mode with N threads")
-parser.add_argument("--skip_tar", action="store_true", help="Skip tar file")
-parser.add_argument("-t", "--from_time", metavar="MMDD HH:MM", dest="start_time", help="Specify start time in quotes")
-parser.add_argument("-T", "--to_time", metavar="MMDD HH:MM", dest="end_time", help="Specify end time in quotes")
-parser.add_argument("--histogram-mode", dest="histogram_mode", metavar="LIST",
-                    help="List of errors to generate histogram \n Example: --histogram-mode 'error1,error2,error3'")
-args = parser.parse_args()
-
-# Validated start and end time format
-if args.start_time:
-    try:
-        datetime.datetime.strptime(args.start_time, "%m%d %H:%M")
-    except ValueError as e:
-        print("Incorrect start time format, should be MMDD HH:MM")
-        exit(1)
-if args.end_time:
-    try:
-        datetime.datetime.strptime(args.end_time, "%m%d %H:%M")
-    except ValueError as e:
-        print("Incorrect end time format, should be MMDD HH:MM")
-        exit(1)
-
-# 7 days ago from today
-seven_days_ago = datetime.datetime.now() - datetime.timedelta(days=7)
-seven_days_ago = seven_days_ago.strftime("%m%d %H:%M")
-# If not start time then set it to today - 7 days in "MMDD HH:MM" format
-start_time = datetime.datetime.strptime(args.start_time,
-                                        "%m%d %H:%M") if args.start_time else datetime.datetime.strptime(seven_days_ago,
-                                                                                                         "%m%d %H:%M")
-end_time = datetime.datetime.strptime(args.end_time, "%m%d %H:%M") if args.end_time else datetime.datetime.now()
+# Create a Jinja2 environment pointing to the template directory
+env = Environment(loader=FileSystemLoader('./templates'))
 
 # Define the lists to store the results
 listOfErrorsInAllFiles = []
@@ -133,14 +103,7 @@ console_handler.setLevel(logging.INFO)
 console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 
-if args.directory:
-    log_file = os.path.join(args.directory, 'analyzer.log')
-else:
-    log_file = 'analyzer.log'
-file_handler = logging.FileHandler(log_file)
-file_handler.setLevel(logging.DEBUG)
-file_handler.setFormatter(formatter)
-logger.addHandler(file_handler)
+
 
 
 # Function to display the rotating spinner
@@ -203,6 +166,7 @@ def getNodeDirectory(logFilesMetadata, nodeName):
 
 
 def getNodeDetails(logFilesMetadata):
+    total_tablets = 0
     tserverUUID = masterUUID = placement = numTablets = ''
     nodeDetails = {}
     tserverList, masterList = getTserverMasterList(logFilesMetadata)
@@ -262,12 +226,20 @@ def getNodeDetails(logFilesMetadata):
             tserverUUID = "-"
             masterUUID = "-"
             placement = "-"
+
+        total_tablets += numTablets
+
         nodeDetails[node] = {}
         nodeDetails[node]["nodeDir"] = nodeDir
         nodeDetails[node]["tserverUUID"] = tserverUUID
         nodeDetails[node]["masterUUID"] = masterUUID
         nodeDetails[node]["placement"] = placement
         nodeDetails[node]["NumTablets"] = numTablets
+
+    total_tablets = sum([details["NumTablets"] for details in nodeDetails.values()])
+    for key, value in nodeDetails.items():
+        value["percentage"] = 0 if total_tablets == 0 else round((value["NumTablets"] / total_tablets) * 100)
+
     return nodeDetails
 
 
@@ -330,7 +302,7 @@ def extractAllTarFiles(logDirectory):
             extractedAll = True
 
 
-def getLogFilesToAnalyze():
+def getLogFilesToAnalyze(args):
     logFiles = []
     if args.directory:
         if not args.skip_tar:
@@ -395,7 +367,7 @@ def openLogFile(logFile):
         return []
 
 
-def analyzeLogFile(logFile, outputFile, logFilesMetadata):
+def analyzeLogFile(logFile, outputFile, logFilesMetadata, start_time, end_time):
     barChartJSON = {}
     results = {}
     nodeName = logFilesMetadata[logFile]["nodeName"]
@@ -509,45 +481,71 @@ def getSolution(message):
         return solutions[message]
 
 
-if __name__ == "__main__":
+def main(args=None):
+    # Add these global declarations
+    global listOfErrorsInAllFiles
+    global listOfAllFilesWithNoErrors
+    global histogramJSON
+    global hagenAIJSON
+
+    if args.directory:
+        log_file = os.path.join(args.directory, 'analyzer.log')
+    else:
+        log_file = 'analyzer.log'
+    file_handler = logging.FileHandler(log_file)
+    file_handler.setLevel(logging.DEBUG)
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+
+    # 7 days ago from today
+    seven_days_ago = datetime.datetime.now() - datetime.timedelta(days=7)
+    if args.start_time:
+        start_time = args.start_time
+    else:
+        start_time = seven_days_ago
+
+    if not args.end_time:
+        end_time = args.end_time
+    else:
+        end_time = datetime.datetime.now()
+
+
     # Add Command line options and current directory to the htmlFooter
     cmdLineOptions = vars(args)
     logger.info("Command line options: {}".format(cmdLineOptions))
+
     currentDir = os.getcwd()
-    cmdLineDetails = """<h2 id=command-line-options> Command Line Options </h2>
-                        <table>
-                        <tr>
-                            <th>Command Line Options</th>
-                            <th>Value</th>
-                        </tr>"""
-    for key, value in cmdLineOptions.items():
-        cmdLineDetails += f"""
-                        <tr>
-                            <td>{key}</td>
-                            <td>{str(value)}</td>
-                        </tr>"""
-    cmdLineDetails += f"""
-                        <tr>
-                            <td>Current Directory</td>
-                            <td>{currentDir}</td>
-                        </tr>
-                    </table>"""
-    htmlFooter = cmdLineDetails + htmlFooter
+
+
+    # Render the Command line section of the HTML
+    # Load the specific template
+    cmd_line_template = env.get_template('cmd_line_details.html.j2')
+    cmd_line_html = cmd_line_template.render(cmd_line_options=cmdLineOptions)
+
+    #htmlFooter = cmdLineDetails + htmlFooter
+    htmlFooter = cmd_line_html
+
     dirPaths = []
     outputFilePrefix = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-    choosenTypes = args.types.split(",") if args.types else ["pg", "ts", "ms"]
+    choosenTypes = args.types if args.types else ["pg", "ts", "ms"]
     # Create output file
     if not args.output_file:
         outputFile = outputFilePrefix + "_analysis.html"
     else:
         outputFile = args.output_file
+
     writeToFile(outputFile, htmlHeader)
 
+
     # Get Log files to analyze
-    logFiles = getLogFilesToAnalyze()
+    logFiles = getLogFilesToAnalyze(args)
     if not logFiles:
         logger.error("No log files found to analyze")
         # exit(1)
+
+    ########
+    # -> Note (PV) Do not understand this section
+    ########
     if args.support_bundle or args.directory:
         # Build one time metadata for all the log files
         logFilesMetadataFile = 'log_files_metadata.json'
@@ -570,13 +568,19 @@ if __name__ == "__main__":
         with open(logFilesMetadataFile, "r") as f:
             logFilesMetadata = json.load(f)
 
-        logFilesToProcess = list(logFilesMetadata.keys())
+        #logFilesToProcess = list(logFilesMetadata.keys())
+        ########
+        # <- Note (PV) Do not understand this section
+        ########
+
+        logFilesMetadata = {log: getFileMetadata(log, logger) for log in logFiles}
+        logFilesToProcess = logFiles
 
         # Filter log files by nodes
         if args.nodes:
             logger.debug(f"Filtering log files by nodes: {args.nodes}")
             includedLogFiles, removedFiles = filterLogFilesByNode(logFilesToProcess, logFilesMetadata, args.nodes)
-            logFilesToProcess = [logFile for logFile in logFilesToProcess if logFile not in removedFiles]
+            logFilesToProcess = [logFile for logFile in includedLogFiles if logFile not in removedFiles]
             logger.debug(f"Filtered log files: {includedLogFiles}")
             logger.debug(f"Removed log files: {removedFiles}")
 
@@ -625,19 +629,14 @@ if __name__ == "__main__":
             logger.error(f"Error getting node details: {e}")
             nodeDetails = None
         if nodeDetails is not None:
-            totalTablets = sum([details["NumTablets"] for details in nodeDetails.values()])
-            content = "<h2 id=node-details> Node Details </h2>"
-            content += "<table class='sortable' id='node-details-table'>"
-            content += "<tr><th>Node Name</th><th>Master UUID</th><th>TServer UUID</th><th>Placement</th><th>Num Tablets</th></tr>"
-            for node, details in nodeDetails.items():
-                # Calculate the percentage of tablets
-                try:
-                    percentage = round((int(details["NumTablets"]) / totalTablets) * 100)
-                except ZeroDivisionError:
-                    percentage = 0
-                content += f"<tr><td>{node}</td><td>{details['masterUUID']}</td><td>{details['tserverUUID']}</td><td>{details['placement']}</td><td>{details['NumTablets']} ({percentage}%)</td></tr>"
-            content += "</table>"
-            writeToFile(outputFile, content)
+
+            # Render the Command line section of the HTML
+            # Load the specific template
+
+            node_details_template = env.get_template('node_details.html.j2')
+            node_details_html = node_details_template.render(node_details=nodeDetails)
+
+            writeToFile(outputFile, node_details_html)
 
             # Add the node details to localHagenAIJSON (default to empty with "")
             hagenAIJSON["nodeDetails"] = {}
@@ -663,28 +662,21 @@ if __name__ == "__main__":
         hagenAIJSON["gflags"]["tserver"] = allGFlags["tserver"]
 
         # Get the list of all only the gflags for master and tserver, the keys are the gflags and the values are the values
-        gFlagList = []
-        for gFlag in allGFlags["master"]:
-            gFlagList.append(gFlag)
-        for gFlag in allGFlags["tserver"]:
-            gFlagList.append(gFlag)
-        uniqueGFlags = list(set(gFlagList))
-        content = "<h2 id=gflags> GFlags </h2>"
-        content += "<table class='sortable' id='gflags-table'>"
-        content += "<tr><th>GFlag</th><th>Master Value</th><th>TServer Value</th></tr>"
-        for gFlag in uniqueGFlags:
-            masterValue = allGFlags["master"].get(gFlag, "-")
-            tserverValue = allGFlags["tserver"].get(gFlag, "-")
-            content += f"<tr><td>{gFlag}</td><td>{masterValue}</td><td>{tserverValue}</td></tr>"
-        content += "</table>"
-        writeToFile(outputFile, content)
+        # Create a set of unique gFlags by taking the union of the keys from both dictionaries.
+        uniqueGFlags = set(allGFlags["master"]) | set(allGFlags["tserver"])
+
+        node_details_template = env.get_template('gflag_data.html.j2')
+        node_details_html = node_details_template.render(unique_gflags=uniqueGFlags,
+                                                         all_gflags=allGFlags)
+
+        writeToFile(outputFile, node_details_html)
 
         logger.info("Number of files to analyze: {}".format(len(logFilesToProcess)))
 
         # Create a pool of workers
         pool = Pool(processes=args.numThreads)
         for listOfErrorsInFile, listOfFilesWithNoErrors, barChartJSON, nodeDetails in pool.starmap(analyzeLogFile, [
-            (logFile, outputFile, logFilesMetadata) for logFile in logFilesToProcess]):
+            (logFile, outputFile, logFilesMetadata, start_time, end_time) for logFile in logFilesToProcess]):
             listOfErrorsInAllFiles = list(set(listOfErrorsInAllFiles + listOfErrorsInFile))
             listOfAllFilesWithNoErrors = list(set(listOfAllFilesWithNoErrors + listOfFilesWithNoErrors))
             for key, value in barChartJSON.items():
@@ -735,6 +727,7 @@ if __name__ == "__main__":
             for error in listOfErrorsInAllFiles:
                 solution = getSolution(error)
                 solutionMarkdown += """###{}\n{} \n\n---\n\n""".format(error, solution).replace("`", "\`")
+                #solutionMarkdown += f"###{error}\n{solution} \n\n---\n\n"
             solutionMarkdown += "`"
             content += """<script> htmlGenerateBar = new showdown.Converter();\n"""
             content += """solutionHtml = htmlGenerator.makeHtml({})\n""".format(solutionMarkdown)
@@ -807,6 +800,44 @@ if __name__ == "__main__":
         htmlNameOnServer = caseNumber + "-" + outputFile
         # Copy the output file to the server
         os.system("cp " + outputFile + " /home/support/logs_analyzer_dump/" + htmlNameOnServer)
+
+        generate_index_html()
+
         logger.info("⌘+Click 👉👉 http://lincoln:7777/files/" + htmlNameOnServer)
     else:
         logger.info("⌘+Click 👉👉 file://" + os.path.abspath(outputFile) + " to view the analysis")
+
+
+if __name__ == "__main__":
+    try:
+        args = parse_arguments()
+
+        # Now you can use the validated and parsed arguments:
+        logger.info("#" * 80)
+        logger.info("# Parsed Arguments:")
+        logger.info("#" * 80)
+        logger.info(f"#  Directory: {args.directory}")
+        logger.info(f"#  Support Bundle: {args.support_bundle}")
+        logger.info(f"#  Skip Tar: {args.skip_tar}")
+        logger.info(f"#  Log Types: {args.types}")
+        logger.info(f"#  Nodes: {args.nodes}")
+        logger.info(f"#  Start Time: {args.start_time}")  # This is now a datetime object
+        logger.info(f"#  End Time: {args.end_time}")  # This is now a datetime object
+        logger.info(f"#  Output File: {args.output_file}")
+        logger.info(f"#  Parallel Threads: {args.numThreads}")
+        logger.info(f"#  Histogram Errors: {args.histogram_errors}")  # Note the renamed dest
+        logger.info("#" * 80)
+
+    except argparse.ArgumentError as e:
+        # Custom type validation functions raise ArgumentTypeError,
+        # which inherits from ArgumentError.
+        # argparse usually handles printing the error and exiting,
+        # but you can catch it for custom logging if needed.
+        logger.error(f"Argument Error: {e}", file=sys.stderr)
+        sys.exit(1)
+    except Exception as e:
+        # Catch other potential errors during setup or execution
+        print(f"An unexpected error occurred: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    main(args)

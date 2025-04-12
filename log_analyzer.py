@@ -24,8 +24,6 @@ import gzip
 import json
 
 from utils.render import generate_index_html
-from config import DUMP_DIR
-from utils.helper import extract_zendesk_ticket_id
 
 class ColoredHelpFormatter(argparse.RawTextHelpFormatter):
     def _get_help_string(self, action):

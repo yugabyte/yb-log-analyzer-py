@@ -1,0 +1,15 @@
+<h2 id=gflags> GFlags </h2>
+<table class='sortable' id='gflags-table'>
+   <tr>
+      <th>GFlag</th>
+      <th>Master Value</th>
+      <th>TServer Value</th>
+   </tr>
+    {% for gflag in unique_gflags %}
+        <tr>
+          <td>{{ gflag }}</td>
+          <td>{{ all_gflags["master"].get(gflag, "-") }}</td>
+          <td>{{ all_gflags["tserver"].get(gflag, "-") }}</td>
+       </tr>
+    {% endfor %}
+</table>

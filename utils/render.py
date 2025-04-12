@@ -279,7 +279,7 @@ def generate_index_html(
         rendered_html = template.render(
             title=title,
             analysis_items=analysis_data,
-            current_year=current_year
+            current_year=current_year,
         )
         logging.info("Template rendered successfully.")
 

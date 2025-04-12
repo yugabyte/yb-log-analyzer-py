@@ -1,0 +1,19 @@
+<h2 id=node-details> Node Details </h2>
+<table class='sortable' id='node-details-table'>
+   <tr>
+      <th>Node Name</th>
+      <th>Master UUID</th>
+      <th>TServer UUID</th>
+      <th>Placement</th>
+      <th>Num Tablets</th>
+   </tr>
+    {% for node, details in node_details.items() %}
+       <tr>
+          <td>{{ node }}</td>
+          <td>{{ details["masterUUID"] }}</td>
+          <td>{{ details["tserverUUID"] }}</td>
+          <td>{{ details["placement"] }}</td>
+          <td>{{ details["percentage"] }}</td>
+       </tr>
+    {% endfor %}
+</table>

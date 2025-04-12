@@ -1,5 +1,6 @@
 import yaml
 import os
+import json
 
 ##############################################################################
 # Read log_conf.yml and parse into patterns/solutions for universe & pg
@@ -21,6 +22,7 @@ for msg_dict in universe_config:
     universe_solutions[name] = solution
 
 pg_regex_patterns = {}
+pg_solutions = {}
 pg_solutions = {}
 for msg_dict in pg_config:
     name = msg_dict["name"]
@@ -479,6 +481,7 @@ barChart2 = """
 });
 </script>
 """
+
 htmlFooter = """
 Credits: <a href='https://www.kryogenix.org/code/browser/sorttable/sorttable.js'> sorttable.js </a> and <a href='https://www.chartjs.org/'> Chart.js </a>
 </body>

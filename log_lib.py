@@ -38,7 +38,7 @@ def getTimeFromLog(line):
     except Exception as e:
         raise ValueError(f"Error parsing timestamp from log line: {line} - {e}")
 
-def getFileMetadata(logFile):
+def getFileMetadata(logFile, logger):
     """
     Extracts metadata from a given log file, including start time, end time, log type, and node name.
     Args:
@@ -58,13 +58,13 @@ def getFileMetadata(logFile):
         try:
             logs = gzip.open(logFile, 'rt')
         except:
-            print("Error opening file: " + logFile)
+            logger.error("Error opening file: " + logFile)
             return None
     else:
         try:
             logs = open(logFile, 'r')
         except:
-            print("Error opening file: " + logFile)
+            logger.error("Error opening file: " + logFile)
             return None
     try:
         # Read first 10 lines to get the start time
@@ -84,7 +84,7 @@ def getFileMetadata(logFile):
             except ValueError:
                 continue
     except Exception as e:
-        print(f"Error processing file: {logFile} - {e}")
+        logger.info(f"Error processing file: {logFile} - {e}")
         return None
     
     if not logStartsAt:
@@ -127,8 +127,8 @@ def filterLogFilesByTime(logFileList, logFileMetadata, start_time, end_time):
     removed_files = []
     for logFile in logFileList:
         # Get the start and end time of the log file in datetime format
-        log_start = datetime.datetime.strptime(logFileMetadata[logFile]["logStartsAt"], '%Y-%m-%d %H:%M:%S')
-        log_end = datetime.datetime.strptime(logFileMetadata[logFile]["logEndsAt"], '%Y-%m-%d %H:%M:%S')
+        log_start = logFileMetadata[logFile]["logStartsAt"]
+        log_end = logFileMetadata[logFile]["logEndsAt"]
         if log_start >= end_time or log_end <= start_time:
             removed_files.append(logFile)
         else:

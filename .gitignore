@@ -9,3 +9,7 @@ test.md
 sample*
 sample_logs/analyzer.log
 analyzer.log
+*_analysis.html
+index.html
+hagen_ai.json
+log_files_metadata.json
