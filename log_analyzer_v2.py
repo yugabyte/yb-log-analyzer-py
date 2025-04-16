@@ -406,8 +406,8 @@ def analyzeLogFile(logFile, outputFile, logFilesMetadata):
             previousTime = timeFromLog.strftime("%m%d %H:%M")
 
             # Skip lines before the start_time
-            if timeFromLog < start_time:
-                continue
+            # if timeFromLog < start_time:       # TODO: Need to check if this is correct, For some reason, It is not working on lincoln 
+                # continue 
 
             # Stop processing after the end_time
             if timeFromLog > end_time:
