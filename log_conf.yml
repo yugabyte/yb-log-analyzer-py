@@ -204,6 +204,7 @@ Yugabytedb_anywhere:
     - name: "Runtime error: Root Certificate on the node doesn't match the certificate given to YBA."
       pattern: "Runtime error: Root Certificate on the node doesn't match the certificate given to YBA."
       relevant_tickets: 14029
+      relevant_issue: https://yugabyte.atlassian.net/browse/PLAT-16726
       solution: |
         2024.2.x added validation to the TLS cert deployment, which was not present in 2.20.x.
         The validation checks the MD5 sum of the root CA/root chain provided to YBA against the root CA/root chain deployed to the DB nodes.
