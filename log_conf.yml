@@ -198,3 +198,24 @@ pg:
       pattern: "database system is ready to accept connections"
       solution: |
         This message indicates that the database was restarted and is ready to accept connections. This is an informational message and can be ignored if not observed frequently.
+
+Yugabytedb_anywhere:
+  log_messages:
+    - name: "Runtime error: Root Certificate on the node doesn't match the certificate given to YBA."
+      pattern: "Runtime error: Root Certificate on the node doesn't match the certificate given to YBA."
+      relevant_tickets: 14029
+      solution: |
+      2024.2.x added validation to the TLS cert deployment, which was not present in 2.20.x.
+      The validation checks the MD5 sum of the root CA/root chain provided to YBA against the root CA/root chain deployed to the DB nodes.
+      Even if the certs are functionally equivalent (same text, same values), if the checksums are different, this validation check will fail.
+ 
+      In our experience this may mean:
+      One of root certs (either YBA or DB) has extra whitespace added to it (meaning the checksums mismatch)
+      One of the root certs (either YBA or DB) was edited in Windows (giving it Windows-style line endings), where the other has Unix-style line endings (meaning the checksums mismatch)
+ 
+      Or it could mean that the certs are legitimately different, if there was a mistake in upload
+ 
+      Questions:
+      How are your certs produced?
+      How are your certs deployed to the YBA and DB nodes?
+      Do you have any processing steps that you do before deploying the certs to the DB nodes?
