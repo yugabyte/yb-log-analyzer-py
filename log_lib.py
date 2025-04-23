@@ -112,7 +112,7 @@ def getFileMetadata(logFile):
         
     # Get the node name
     # /Users/pgyogesh/logs/log_analyzer_tests/yb-support-bundle-ybu-p01-bpay-20240412151237.872-logs/yb-prod-ybu-p01-bpay-n8/master/logs/yb-master.danpvvy00002.yugabyte.log.INFO.20230521-030902.3601
-    nodeNameRegex = r"/(yb-[^/]*n\d+)/"
+    nodeNameRegex = r"/(yb-[^/]*n\d+|yb-(master|tserver)-\d+_[^/]+)/"
     nodeName = re.search(nodeNameRegex, logFile)
     if nodeName:
         nodeName = nodeName.group().replace("/","")
