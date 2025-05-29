@@ -106,21 +106,37 @@ def getFileMetadata(logFile):
         logType = "yb-tserver"
     elif "master" in logFile:
         logType = "yb-master"
+    elif "application" in logFile:
+        logType = "YBA"
     else:
         logType = "unknown"
+        
+    # Get the subtype
+    if "postgres" in logFile:
+        subtype = "postgres"
+    elif "INFO" in logFile:
+        subtype = "INFO"
+    elif "ERROR" in logFile:
+        subtype = "ERROR"
+    elif "WARNING" in logFile:
+        subtype = "WARNING"
+    elif "FATAL" in logFile:
+        subtype = "FATAL"
+    else:
+        subtype = "unknown"
         
         
     # Get the node name
     # /Users/pgyogesh/logs/log_analyzer_tests/yb-support-bundle-ybu-p01-bpay-20240412151237.872-logs/yb-prod-ybu-p01-bpay-n8/master/logs/yb-master.danpvvy00002.yugabyte.log.INFO.20230521-030902.3601
-    nodeNameRegex = r"/(yb-[^/]*n\d+|yb-(master|tserver)-\d+_[^/]+)/"
+    nodeNameRegex = r"/(yb-[^/]*n\d+)/"
     nodeName = re.search(nodeNameRegex, logFile)
     if nodeName:
         nodeName = nodeName.group().replace("/","")
     else:
         nodeName = "unknown"
     
-    logger.debug(f"Metadata for file: {logFile} - {logStartsAt} - {logEndsAt} - {logType} - {nodeName}")
-    return {"logStartsAt": logStartsAt, "logEndsAt": logEndsAt, "logType": logType, "nodeName": nodeName}
+    logger.debug(f"Metadata for file: {logFile} - {logStartsAt} - {logEndsAt} - {logType} - {subtype} - {nodeName}")
+    return {"logStartsAt": logStartsAt, "logEndsAt": logEndsAt, "logType": logType, "subtype": subtype, "nodeName": nodeName}
 
 def filterLogFilesByTime(logFileList, logFileMetadata, start_time, end_time):
     filtered_files = []

@@ -12,7 +12,8 @@
 </head>
 <body>
     <h2>{{ title }}</h2>
-    <table>
+    <input type="text" id="ticketSearch" placeholder="Search for ticket number..." style="margin-bottom:10px;">
+    <table id="ticketTable">
         <thead>
             <tr>
                 <th>Ticket Number</th>
@@ -32,5 +33,19 @@
             {% endfor %}
         </tbody>
     </table>
+    <script>
+    document.getElementById('ticketSearch').addEventListener('keyup', function() {
+        var input = this.value.toLowerCase();
+        var rows = document.querySelectorAll('#ticketTable tbody tr');
+        rows.forEach(function(row) {
+            var ticket = row.cells[0].textContent.toLowerCase();
+            if (ticket.indexOf(input) > -1 || input === "") {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+    </script>
 </body>
 </html>
