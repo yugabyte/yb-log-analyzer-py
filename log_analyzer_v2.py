@@ -12,6 +12,9 @@ from analyzer_lib import (
     barChart1,
     barChart2,
 )
+
+from config import LINCOLN_HOSTNAME
+
 from log_lib import (
     getTimeFromLog,
     getFileMetadata,
@@ -34,6 +37,15 @@ import sys
 import itertools
 import time
 import threading
+# Import helper functions
+from utils.helper import (
+        get_hostname,
+        get_case_number_from_path,
+        copy_analysis_file,
+        get_analysis_items,
+        generate_index_html,
+        find_version_in_logs
+    )
 
 class ColoredHelpFormatter(argparse.RawTextHelpFormatter):
     def _get_help_string(self, action):
@@ -768,3 +780,58 @@ if __name__ == "__main__":
         logger.info("⌘+Click 👉👉 http://lincoln:7777/" + htmlNameOnServer)
     else:
         logger.info("⌘+Click 👉👉 file://" + os.path.abspath(outputFile) + " to view the analysis")
+
+    # Render the Jinja index.html template for all analysis files (like v1)
+    analysis_items = get_analysis_items()  # Uses default ANALYSIS_DUMP_DIR
+    if generate_index_html(analysis_items):
+        logger.info("Index file updated: index.html")
+    else:
+        logger.error("Failed to update index.html.")
+        
+# if hostname == "lincoln" then copy file to directory /tmp
+# --- Main Logic ---
+hostname = get_hostname()
+if hostname == LINCOLN_HOSTNAME:
+    # Determine the source log directory to extract the case number
+    # Prioritize args.directory if provided, otherwise use the directory of the first log file
+    source_log_dir_path = None
+    if args.directory:
+        source_log_dir_path = os.path.abspath(args.directory)
+    elif args.log_files and os.path.exists(args.log_files[0]):
+        # Use dirname if log_files contains file paths, otherwise treat as dir path
+        if os.path.isfile(args.log_files[0]):
+            source_log_dir_path = os.path.dirname(os.path.abspath(args.log_files[0]))
+        else:  # Assume it's a directory path
+            source_log_dir_path = os.path.abspath(args.log_files[0])
+    else:
+        logger.error("Could not determine source log directory for case number extraction.")
+        source_log_dir_path = None  # Explicitly set to None
+    case_number = None
+    if source_log_dir_path:
+        case_number = get_case_number_from_path(source_log_dir_path)
+    if case_number:
+        logger.info(f"Detected Case Number: {case_number}")
+        # Copy the generated analysis file
+        copied_file_path = copy_analysis_file(outputFile, case_number)  # Uses default ANALYSIS_DUMP_DIR
+        if copied_file_path:
+            copied_filename = os.path.basename(copied_file_path)
+            # Log the URL for the specific file
+            logger.info(f"Analysis file copied to Lincoln server.")
+            logger.info(f"⌘+Click 👉👉 http://{LINCOLN_HOSTNAME}:7777/{copied_filename}")  # Assuming port 7777
+            # Update the index.html
+            analysis_items = get_analysis_items()  # Uses default ANALYSIS_DUMP_DIR
+            if generate_index_html(analysis_items):
+                logger.info(f"Index file updated: http://{LINCOLN_HOSTNAME}:7777/index.html")
+            else:
+                logger.error("Failed to update index.html on Lincoln server.")
+        else:
+            logger.error(f"Failed to copy analysis file '{outputFile}' for case {case_number}.")
+    else:
+        logger.warning("Could not determine case number. Skipping copy and index update on Lincoln.")
+        # Log local file path as a fallback
+        logger.info("Analysis complete. View local file:")
+        logger.info(f"⌘+Click 👉👉 file://{os.path.abspath(outputFile)}")
+else:
+    # Running on a different machine
+    logger.info("Analysis complete. View local file:")
+    logger.info(f"⌘+Click 👉👉 file://{os.path.abspath(outputFile)}")
